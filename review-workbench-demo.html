@@ -1,0 +1,2049 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Review Workbench Demo</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --line: #d9e0e8;
+      --line-strong: #b8c4d1;
+      --text: #1c2633;
+      --muted: #667487;
+      --accent: #1769aa;
+      --accent-soft: #e8f2fb;
+      --danger: #b83f35;
+      --danger-soft: #fff0ed;
+      --warning: #ad6a00;
+      --warning-soft: #fff4d7;
+      --success: #287d52;
+      --success-soft: #e7f6ee;
+      --shadow: 0 18px 44px rgba(26, 38, 52, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      padding: 12px 18px;
+      display: grid;
+      gap: 11px;
+    }
+
+    .topbar-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .title-block {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .product-title {
+      font-size: 18px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .task-id {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-row,
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      gap: 6px;
+      padding: 4px 9px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--surface-2);
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .pill strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .pill.risk {
+      color: var(--danger);
+      background: var(--danger-soft);
+      border-color: #f0bdb6;
+    }
+
+    .btn {
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      padding: 7px 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .btn.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn.primary:hover {
+      color: #fff;
+      background: #12578e;
+    }
+
+    .main {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(300px, 31%) minmax(360px, 36%) minmax(320px, 33%);
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .panel {
+      min-height: 0;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-2);
+      flex: 0 0 auto;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .left-content,
+    .center-content,
+    .right-content {
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .video-frame {
+      aspect-ratio: 16 / 9;
+      background:
+        linear-gradient(135deg, rgba(23, 105, 170, 0.2), rgba(40, 125, 82, 0.16)),
+        url("data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAEJAdcDASIAAhEBAxEB/8QAHAAAAAcBAQAAAAAAAAAAAAAAAAECAwQFBgcI/8QAWhAAAQMCAwMFCwYKBwQJBAMAAQACAwQRBRIhBhMxIjJBUWEHFBUjcXKBkZKx0TNCVZOh4RYkNFJTYmOiwdMXQ0RUo6TwRYOU4gglNVZzgpXS8SY2hLJ0tML/xAAaAQADAQEBAQAAAAAAAAAAAAAAAQIDBAUG/8QANREAAgIBAgQDBQcEAwEAAAAAAAECEQMEEhMhMVEUIkEyUmGh8AUVM3GBwdEjQrHhNFOR8f/aAAwDAQACEQMRAD8A5T3QttMX2t2iq62vrJjEZHbmDOckLL6NaOj/AEeKzIqJv0sntFJqj+NTeefemr3XpRVLkee22+pI74m/Sye0UBUS/pn+0UwESqxcyT3xL+lk9oo++Jf0r/aKj3Rg6Joltj4nl/Sv9ooCeX9JJ7RTJKAKoOfckb+X9I/2ihvpv0kntFMN6NEocRoelArY8JpTxfJ6HFHvZDaz5uH5xTTRcjRx06EtttL5+b/r0J0S5MWJZCPlJeF+JSt5JY+NlHJ7U2CAP6zmf6PkSg7R3KePFj5vkRQtzFmR+UnfSaNBRukeC/x79AOjyJD3aPGd+rG6FvHglF+snjSRyeczjw46IoNzD3rwHnf31FtCjdLJd1pxzhpr60HOBDxvhz2/M48NeHQlg3LvGxHxzTct48NeHBPaLc+4Qlkv8szngcTw60pr5Lt8cz5S3O6EqMZnN8bT6zji3hw18idgZmdFZ1Lypzo4adGp7FSiJz+IxHJLeLlsPjCNX8RpxRxPlIiu5puXcX+RPwwl3e9hR8qR45R48Od2JuKnuKa0VM6+bR0lr8OJuhx+AlN9xlj5SIr63B/rPt4og+bKw8o8k/1nHt4pUcN9yd1C4ljjz7X7ePFIbHyW+Jb8lfn/AG8ePYp2lbn3Czy6fKXyX+U+9AulGb5XRgN86Mx8k+LNt3e+bXy+RJcyzHeKeOQPnJUCk+4HPkGa5m4D5yN0kgz3M4AA1vwSHi2ezJRyR03t5U3MJMzgwSBul2nj6UqKTfccNQdfGzcetB05ubTScVDc0scQRbXpRXB6VLZfPuS9/Ln0lky34oOqZAOTK8m/ApET8sUeZzgLnouo7jdxN7hJsE2PuqpSPlHDyEou+Jf0sntFMXQupsdseM83RLJ7RRb+bW80g7cx0TJKBKVlW6LOGqllZIeSMsdtXfb5U/LLIGTWEejBwk4doVJ0pyolbK/M1gYOoKlL4ENPuTJcQDs5Ebmk2tZ5sOtNurXOJyh4uQR4w6BQiElQ5FpOupYPlm5WUyWz2HjD6uKJz578Zhy8vyh+KhRuyuublnUpDeWAWsdYvvfN/rVFibY610928qo1eW6O8qS2WYlln1GpcOPVdSKGmdUzQsYyouXu4O7Dw7UwQWFmk4sXjr6wqoW5hMllIZ42p1B+y6Ns0vi/G1GoJ96KN1shDptGutp5eCNr7BgzyaRn5vl0SBSYQnkAH4xNcsOhB7f9XUY1dQ6w30nVzrKQXnKBvJLCKw5HadOHDtTDoYwHWkcHBl+b09SRSYBWzta4b55uOJcdFJknl5dql2gHSRdVxBBuW2PaFYRS7yCoMj2Ne7KA0s16eGiaTHJ8rsQ6pnjcYhOX3I5ZJ0SKipqBM4Gd1+prjZPzOzGY54Tym8G8fIm6l145tYnF0g1aLX8iBRk2RzVVH6aX2yn4aqckM3jib8S8qHaxPCw0t0orJMtk2eaoEYO9eOWRo8pg1NRreaUHqzlMlABIFyHe+aj9PL7ZQ75qP08vtlNWQsgdj3fNRfSeX2ygmUFQWS6q3fU3nn3ppOVf5VN57vemVS6GT6i0SSj1TANKF7JKHBAhWqW3yJtKCLFQ40c3TpSmi9tD09KQy926fajaCbHKToTxViFt0y6O4HgUputtJOZ0f64JtrTpyHaN6CnWggc2QWZ0JolgtofleYOA/wBaJd7B/Kl5gA5Pk49iK1gb77mDgEo/1lnTDkgWtx4diCQ3Os2TlyWytFi3jw7EbnA73xriC5o1Zx4diNx0k8ZKRyQbt48OxLc4EyXlk1c294+PDsVrmAYeLv8AxgG8jdTH5OxPMILvl47b8G7o/Jrw4diQHkuJdUm5lb/V+TXh9ikQPGdv4xH+UAnPHoOHK+5awiZSY5TAPMd56YE1N7uZYdHKP6vYptDCHmlvJQHx7rtdpbhq79UoYcQZacuqqXWpc674+GgAJ7OxazZnDTV95Na6glLZZHFpZr0cesdS68eJdWceo1McUd0jKQUpApD/ANWvuZDynWvw52vqUSOnBbTDdUZuxxsZbH066FdKr9nn0UVHvIsPAjEjruFg6/WbrEy02XceKw5wbTvPKktfy687sTniVWjLTa6GdXFlHuOTF4inJMJdfej18ed2Jjc6DxEfyGb5Tj28ePYpzoQBGRT0rmtpi75Q3v1nXndn2KNLDlY78Xi0gBNpPt48exck4UegnZGMfJd4oG0IdfP9vH7EUkRaJQYHCzG35d8v2p6aNwE3iWgiNvNf9/2JFTFlEp3JFg0AiS+v8Vi0aKxuWOxl8VKCMo53R2pEjbbwhkwNwOUfel1DQ3fOdHI1ocL2ddRZHuknO7z2cRZvEqGUrG6i2+cAHf8Am4pr0KQ5js+acPy5rFxFj5E062Y5eHQs2jVAL3FgaTyRqAkkaIyCiSY0EghZBQASCP0IHyIGEislZSh6EAhJSSEstRWKVDsRZO04LpWt5RAHQbJOUoDSx1umgdEyLNG6ItE4N3atd5eCJoc7JyZvnHj5eH8UuCMkQkRyHRx5J6NdUbIuRGd3PzHEW6tfsWnoZ3zG2ggN+XHIJ/8AjsQGgbyptIiNB5ezgnAywbyageLJ1HAa9nBJ1AN98PFW5vD7OCmgEOcQDZ8oIjA1b93BKBad4HTPaMgAGTj2cEbjYPBdJ8mLAt49h04IpHXEpa94u0cW/cihiJmRySOc+ZxIaAORa/2KXV7prJjHWMkLnNuTHa/aNNFGlfpMDKTewN2cfsSpXudvi6dt3OBJyDXt4fYqRNiZHAmXxsbgXi5yWv5NEoEOcbOgN5eqw/8AhBxzOk8fHrIPmdHWkTPEeZwdC8B55NuP3IaLXwEVQG5drF8p83j/APCiJ6SXPHlyMGt7ga+RMkeX1KHRcU2CyACAHl9SP/XBKhiULozb/QRWTAJBCyCAJNX+VTee73ppO1X5XN57vekK10JfUJGgEaYgggUaNrHPdZouSja3yQn8QBAlWUWFkxgudYlK8Fj9IuhaXI1aRjxoJ1ZXR8RojbwHJPDrViMKH6RH4LbryyqWlydhPLDuQGi/zHHk9BT2UgHkyDkdaltw1oPPOoS+8G2Izu1FlS0016EvNEhlujuTMOSEo6bz5W9m6W8iluoW8q0jtQAtBsrso3H5KmEVzoZGAEDLe40U5YvDHfLoOEuI9sTLuNzJd8p5TdcqUXG7iZZNZRqWce3h9i6T/Rc4hwGLm5N+Z1Jqv7m81LSTztxMvLBvLCPq1Xnw+08E/wC7mdctDlXVGAjk5QvORea9yzj2/cpVPNZ8X40wePLruivb9Y9fkUZsly075wO9uRk4W6R8FJppsskP401vjHO5Ud7acT5V60EedLoWeFTtEtMe+qYATPN3x8NOJ7D1LbbJV+U0QbNSm28Nmts5vl/gsHRVJY6m/GYWZS88qPm36T5Vp9lG4viNFlwqkpqkQkh0nAi/QuyDio8zztXp3mhSNni+IS1ccRYynJMbiWvFx7+KwNZh9Y/duFFTOy0rrCx7dePO7FqfBW1f0ZD7SHgrav6Mh9pLi4nGrOHTaTUadVGNnP58Hri0f9XRk978QTx6+PO7FFmwauIeBh39UOF9D18eK6T4K2r+jYfaQ8FbV/RsPtLJrE/U71k1S/sRzCbB6/xoGGSN5ItYk27UifCK4tmAw6ZvC1rm3xXUvBe1f0bD7SHgrav6Mh9pZvDhfqaLNqfcRyGTB8Tu4GjqTfiMpsjjwWuAu6hqs+a5IaeC64cK2s6MMh9pAYVtZ9GQ+0o4GHuX4jVe4jkU2EYk9zwyiqt2XXAcw/BNHBcT/uM/1ZXY/BW1v0bD7SPwRtZ9GQ+0l4fC/Ua1WqX9hxo4Lif9xn+rKIYLid/yGo+rK7P4I2s6cMh9pDwRtZ0YZB7SXhsPvD8VqvcOM+BsT/uM/wBWUPAmJf3Gf6srs3gja36Mg9pEcI2tH+zIPaS8Nh7h4rVe4cZOCYl/caj6soeBMSH9gqPqyuy+CtrOnDYPaQ8FbWfRsHtI8Nh7h4rVe4cbGC4n/caj6sovAuJf3Cp9g/Bdl8FbWfR0HtIvBW1n0dB7SPDYe4eL1XuHHPAuJW/Iaj6sovAmJH+w1H1ZXZPBe1n0dB7SBwzasf7Og9pHhsPcfitV7hxvwHif9xqPqyi8CYn/AHCo9grsZw7aof7Oh9pF4P2qP+zofaS8Lh7i8VqvcRyqDBq7LHnw+q0BvYEa+pONwmsGQ94Vlwwg2B1PqXUvB21X0dD7SLwftUP9nwe0r8Nh7keI1TfsI5Y7Cq3ILUVdfIRYtPH1cE27C8Qs4CjrNY7DxZ1PUdOC6v4O2r+joPaR+Ddq/o6D2kvD4e5S1Gq/60clfheJEPtS1mrQPkjyuzgjdhOJHe/i1WbgD5Lj9i6wcN2rt/2fB7ST3jtUP7BB7SPDYe4eJ1X/AFo5U/CsRO8/Fao3cOMXHt4IzhWJOLvxeo1kBtuTby8F1TvDao/2CD2krvDar+4Qe0jw2LuHidV7iORyYZi4cQKCZzc+a+6Op9XBRpMGxSSRznYfU3cbkbs/Bdk8H7VfR8HtIxh+1Q/2fB7ST02J+pS1WpX9iOMeBMUsPxCo+rKdbs5jMjczcLrCOsRO+C7CaDarpw+C3nKZRna+kjyNw6mc3tf965dTptsbxPmdWm1OSU6zRpd0cU/BnGvoqt+qd8EPwYxv6KrfqnfBdzNVtieGFUntfei762w4eC6Qen715+zWPntVnqcXT9FJnA6/CMQw+MSVtDUU8ZNg6RhaL+lQbLtG3lTj79nKhuNYfStpXAWe3nNPZquL3tZdChlS/q1+hnJxfsOwHTqQQdxQVEkiqH43N57vem7J2q/KpvPd701fhotK5Ii+ZNw+kZUh5cSMvUpZwuMA3edOJ6EWC6Nk6OtaTZ9kUmKQifKbAlgdwLraA+Ur1MeOCxb5KzinOe+kzOeDItQJHEj7SrnA6SGmgnfljkkD2AOewOto7r9C1Yp6fvc5I47inLvJdzg8+gKxw+mprTgRx375jFugDKcg9Juud6jEucYOzThzl1kZPfa33UFv/BZ8Ee9BHMp7D9izh18FqTTwGmf4tlxASNOBJOb1ABSBS0xqADFDYzhpH6o5nrJdfyK1rkv7WT4Z9zGmXk/J0+vDxDPggZRrljgIOttwz4LUinZuM25bn3TjzeL9M/q5PrTOOwxRUVUaaNlhI0XA1EetiPKqjrN0qoTwcrszxk5R8VBp1Qs0+xFvP2UH1LPgkWtpqLIl28jmY5vP2UH1LPgp+C4vNhNcKmCOAutYt3TRcegKsQUzhGa2yXIqM5RdxNr/AEgV3HvOl115g0RO2/rXBwNFSkEWPICxdvIjsuD7r0qd7TpetzVTYcj3Omc9jIG3kMmUQMs2/oQZK9lsu45JJHiGdPoRW0seCK+q7Y4oL0OZ5Gx5tTIwtdlp7MvbxDOn0LpXcelvRVxIguXg2ZE0e4Ll7jobEldH7kcuWirbEHlDgsdRFKPIvE+Z03P+qz2QgZP1W+yFC36SZ9V5u063kJ28/VZ7IR739VnshQWzXSt6ihbyWZf1W+yEN7f5rPZCh53E8E6w6KaHbJG8t0N9kICX9VvshMkhKDmdKVDX5jweT0M9kJWd3Uz2QmWyxDiUrviDr+1Ki0viOZj1N9kIjJboZ7ITTp4TwKQSx2oKKY6+I+ZuxnshIM1+hvshMutZMOdboToklOlseDfZHwRCYg81nshRd4b6JqQk8DqmhFgaj9VnshI75t0M9kKqlDx89IvIfnKtotzLfvoX1a32R8EO+Gkc1vsj4KpGfrRtz34pbQ3MtDL05WeyPgkvl05rfZHwUFjndJunN8BxISoLY46QuGgb7A+CYLnA8Gn/AMg+CM1EYHFJNTH/AKCqgHo58vFrfYHwT4qgehnsj4KCamJNSTMd0pNWFlmalh4mP2QkmaI8N17IVYMp4I8gRtBMsTLGBwjP/lClYW+CSoInZGWW6WhUwBA4iyUHWOhISaKT5l47vXe1HJYGtAy2aO3sSoBSuqpQRGGN0FwNfsVEXNN7nijAB4WJU7WOy/pWRFz88cZbfTkhNRGF1RM0xNLQbDxY01VI572jLrbsKehkG+bfpcPepplJk+ijgdCwvIBN+dxITsFPAWvuATY8SqJr25gbnThdKMrtS15TafqIx/ddv+B1QP2gXnUjVehe6w6+x84vflhefDxGiqa8kRQfMQgjtqgszQlVQ/GZvPPvTRCeqvymbzz702uhdEZPqWuCgWkurimgfUSWiIa4cT29ap8H5si0eC/lL/NXqKbhgbRxOKllph94Vdj4zhe1j0dKn0FBVd6zXfwkjI16g5Sgp9CPxWbz2e5y8p67JR3eGj3KsUFSD8pp069aAw+rtYyDt5SubIJPXZA8NHuUvg+qvcOF7X4/Yh4OqibBwy25t+KvAEiaSOCN0krg1rRclHjpoHpolL4KqP1dOGqPwTU9bE2cYrcSmdFg1MZAP613BSoMC2jrjZ07Y7dACT+08i5WWtDF9BrwRU9bNUPBNT1sVg7DNoMKiMlVD3xA3i4cVJoayKtYXRPu4cWu4hNfaWV9GJ6KK6lN4IqetiHgep62LQ210SgEfeGb1I8LAzngep62InYRUhrnOLLBaWyRMPFSeQ+5VHX5HJIHpopGNIsT6Vve5J+R11vzwsE7ifKVuu5KfxOu89elmdx5nDFU2dBugSmy4JJOq4fQLHc1ke87UxfrRpDtjhkPQUW+cOlJDShkRyH5hRmf1pBlcTqUC23QhkPUlaKSkIc/XUlKD2jrROj6SE2WkItD8yHd91BEal4PJsEwUCikLe0SRUSuHFL3ktrusoYJalbzTUpUUshLbKelKzjiVCMg6EW9J0SofEJUj2ngm8xaOakNcXcBwR6dJQzVNMMT/nNSt5G4aaFJBaegI91m4kAKbHSFN1RFnWEMmXgU42bI2zgCluKpDWQdSAjHShvGudqCnWkHQDTrRuDaI3TUl0TR0KVuQRoUDAjcPaRbAcEC7qCfMCJ1ORayW4NpHLj0BFd5PBPujISS0iyVgo0MuzcCibI1hsSblOSnLzgosj2Na5x4p3Y6RMD7pyI2ljNrjMFWUkrnMuQRr0qdSPfvI9NMw96T5DSI7XAo/IiBZK0g6OHCybkbKG2dwHCyLDaZfupj/wCk5/PC4E5pzCzSu790txOyVRx544rhRJBCuXOKRmuTG7G/AoIXN+KCxo0sk1Q/GZvPPvTVuCfqfymXzz703luuhLkjN9WWWD82RaLBPyp/mrP4QOTItDgYvVP8i9GX/HZyR/FLwBT6Efis/ns9zlCAU+h/JZvPZ7nLwPRHqCrI7JQQSAAHDy2WRx6okxPFBQwu8Sw2dbpK2BFgewLCYDKHY85/5zyVM3SLgrZ1HZTDIKGlZDGBYcT2rdUNOCByRZY7Z9zXEXN7nrW8pYzuGvB5Nr9q4XbZ6KVKkSTRRuj1AOlly3ug7PeCpm4zhbA0Bw75jaLZm8L+5dXjc58dxwVPj8LajDqqKUAsfE4FVGTiyZx3Lmcwhe2WFkjOY8Bw9KcsoGAtLcPEZJO7e5oPZc2VjZdq5o86ufISkTDxT/NPuTtkiYeKf5p9yuHtImXssxLuJ8pW27lbstHW/wDiLFO4u8pWt7mjstHWdr172b2UeSvU6EZEW8UHe9qG904rjoiyYZbI2zqA6ZJEqKKU6LWKblap8vaeAVJvrdKW2pIHEqHE3jmRauceuyUx1hcuuqZ9e4fNukHEJHacAp2GymmXjpGH53rTZIPAXVE6e7ucSUbZpPmuKNtBaZcua23FNOFulV4fJpmN7p1kgHElMhwTJQdbiiuLcElj2O6fWlWaRzgClZPCG3O1RZkt0RtoQSmSx4PDVFozliaJMcxj1bbVOXjkF7hpUCxHlRZz0o6lQm4lgGX4PaUCHN4WKgB6Bf8Arfak4mizk7M7pCLMRwAVe5/6xRFxtziEtpSzljmceICcbJYa6Kmc54Oj0W+l/ORsK4yLrfW4GyDKkE6OVIXuPF6QXWPPRsDimhFVl4uCI1xOjXBZ2S7vn2RNcGjnElHDFxjRsqL89L3zHHUrNmY25zkN67iHOS2D4xpntZJxN/KoslNHmu4g9So9/INQ5yBqZCec5GwfGRdkaWHBO05AkjFzzgqIVcoFrmycp6p5ni484e9DgHGRLzMuLGxCXvnAaSKjFadMzU+yujA1YUPGwWeJUd0+Uv2TnBseUNVwkgEehdo7odWyXZqdgaRcg3XFjx4dCck6FF7nyCPOQRHnILI1JlSPxiXzj702E7UDx8vnH3pu1l1xXlRi3zZY4TzXrRYCL1T/ADVnsK5r/ItFs/8Alb/MXdP/AI7OWH4xfAKfRD8Wm89nucoQCn0I/FZvPZ7nL5/0R6oqyOyUAhZIBmqnjga4PvqCFh9nmbqumc1hIadL9q2eLxl1E4gcAdBxWd2YAfUxtkFy8kO6DboWM5dzpx400aLDIBNOe+cR70Y06am59S2uFYhV0E8VEZxWQSDkSNOoUfDtloQBUgxku4iRucKXs7QRnacSNDTGAdA2wv2LntM6kqCr9ocQZOKailiiINiZDa6nxVtVLTysrsucxklzeB0TeLbKRV9aZDFHLleXFj9ARfsSzhPekLoIc7WvNwC6+TsSH8DDUMDoac5mObne52ot0lP2Wo2ngjhpKe7y6UtGh6NFmeryLsi7RwZY7JUJskTDxL/NKcskzjxL/NPuWsPaRjL2WYZ3F3lK0/c7dlpKrz1mHfO8pWj2CNqWq89e7n9lHkr1NlnRF6j3KK5XKZ+g/nQz9qZBKIlADpkQz9SjlyTn6bpDTolbzrsUYIPQFF3g61qKOio8DoIsRx2PfVEzc1LQk2zD89/UOzpUyltLhcnyImF4JX4mc1FRukYOLzyWD0nRXLNmsthUYlhEL/zX1QB9yzmL7SYhihtUTlsA0bBFyY2jqDR/FVe9PWpqb9TVZIR+Jt5Nla7KX0op6yMcTTyh/wBnFVzqMxvLJmOY8aFrhYj0Khpa6WmlbJFI5jxqHNNiPStXh+1VLiQbS7QjMLZWVjR4yI9vWFlJSXxOiGSEvgVromg2BHpTe5B4uCkY5Qy4fVmCokaWuGeKVvNkYeDgVXtjeBaNzc3WShdLLv0HCxzX8h1/Slb97NHNTeQMbc3z9Nk01j5D2J2FMmtqI3jlM1QcxjuGiaawtGtkUbrkWalYtqfUc3QA4hJdTv4hgKBkAuHDVP00vKBvyUbmHCiyI6CW+sRTckbg3VjvUreSazSWFpSoJBIOU5vkS4rQvDxfQoHZRzrhJJj61pHwQOPKYD6FGnw+keTlOUoWZMl4GijvDfUonuiBTtdh5gOZnKChyROte6tSshw2inStBJDLhJbUg3uywTBBbxJRHXToVWTRJbU8eSETqok2sAop5PBDMDxRYciY2XS5SHVIvqEwCBbVJIDn68ErHyJQmB4J+jcHVMWZ1uUPeoIa0mwupFKwd8RWPzh70NgqGXNZl5LrlLbByLh4B6ioNrfOQLwBxJT5kWkVe3cb27PT3cCLhceI4LrW2r82z8wseK5M8ajyIn0NcTvoJN83BBKA5ZQWB0Eyo+Xk84+9It2Jyo+Xk84+9NruivKjnb8xPwzg9aPZ/wDLHeYs5hnB60ez/wCWP8xdmTlp2c8fxTQhT6Ifi03ns9zlBAVhQ/k03ns9zl896I9QUAjsjRgJDBlDm2dwKoe8BQYpG5pBjlOnYtD2WVdjLQ2KOf8ARu6O1ZzVo1xOmbaDE+9MMDHOyvkbpdUOz9bj1PjDXxxxTw5SBqAQnhHBjmBxxZiJ2agsNimMEwJ0coErq7MOljz8VyHopXzN9A6ubBv6x8QlDuZFwLSpFdUwiASHktAuVTwYO+liZK+tqMwcTkebgjqULHq9j4e94iLE62TjG2TOSiioxWtfX1jpXnQaNHUOhQ0dtShZdnRHmyduwtEif5GTzT7k5ZInHiZPNPuVw9pES9lmEdxd5Sr3Yp2WnqPOVE/i70q62N/J5z+svfy+yjyV1Zp96Qhv0w66QbrkFRL310kyqLcos2oRQbSSZSm3S6lNF6IkJCo0mxdHBVYjLV17b0FBGamYfnW5rfSVXYxis+K4jPW1TrySuvboaOgDsCtaE969zrEpmaOq66Omcexrc9llS5Zx5ybNJKoqK/Mks3kmbdsc7K0udlF7DrPYm952rcdxMh22pa4Ag0slwfQt5tf3L8OxbPUYQW4fWHUtA8U89rfm+UepRkzrHPbI1xaaWWDlE4XvEe8spW0OAYps/VbjFaV8JJOSTix/mu4H3qpL9FqmpK0YuDi6ZuMEnOPbOVeETHNV0TDVUTjxsOfH6RqPuWV74cODj61P2ErHUu1+FPaTy52xHtD+T/FV2Nwto8Zr6ZujYaiSMDsDiP4KUqk0aO3FMdZWSjg826iU+zE5m6XBVNnSt4etU0mRvmjR0+IiVwa9WMEzGmzmXushHLlII0K01MWviY++Y9ixnGjrwz3dRybKZiAbIi0xtJBv2BOhhc6+UAdqWG35haSsLOihpkjnsGaw9CfjnhhkGcDh0BKEZOrmgNCSWQ30YEmykiR32yQjdk2skzzBtg0A3HHikPAy3jDRpawUJ8ggF9SeFipGSd8Q3I9of5Ul9JHPGSGlril5WEsc9hJcLiyejYA/ngA/NTUtoqTM/VUU0LjYFw61EMbjzr38i1UszQ/JkJA6ehKLaeQWcwepaLKYywWZDc8q4df0oBri7LkJ6yrupwiB7nGNxF+oqFJhswdyHaeVaKaZk8TRCcGNYbtNutR2ySveGtFj5LKe+GWBmRzb9QUYRTF3KNvIFW5E8Nodkhfu9HDP2I6FjzUR7xw0eNPSkbsjg83TtJF+MxX45h70tyKUCuYRfRpI6063jo26Ru3DUNNkbIpjKAAQ1DkkSsdlPtu0jZ2Y5SNQuSOtceRdk27bl2XmHaFxwi4Bt0JzdouMdoRtmQQIu7ggsjQnzjx0nnFIsnJvlpPOKSvSj7KOZ+0yZho5L1pNnR+Ov8xZzDua9aPZ38tf5nxXTm/47MIfimiCn0X5NN57Pc5QSFOovyabz2e5y+cXRHqjgCWAkhR63EKShjzVEzWdl7u9SCiVoOcbAauuqKor24tDUw0gBELgNPncVSY/tI+tp3QUAdHEec884/coOxdX3jjDWSG0c3IN+F1ShuVCunZpcIrKjD6jNTuIAOrT0roGEbYOjYd5T3cekBQX7NMrLOaDHJ0OHBSsP2dqqKrayuivCeErRofguPLhcHaO3FnUuTJNTi9di8rWRR7qImxJHBU9XC6GpfG83czpW9wrD431IiiaOsnqCwG39ezB9tamkqmlsEjGOieOHAXurwwb5mWea6DaCTFJHKwGF7HN/VS7LZ36nOEkz/IS+YfclpE/yMvmFVB+ZCk/KzBO4u9KuNkXAU0/nKndxPpVnssbU8/nL383so8qJoy9IL0ySiLtFyIY6XpJcEyXpBeixj5ckl9kzmSHvSEbKhd313NsTiZq6jr46lw6mubkusrvLq52GxKClxSWjxA2w7EYjSzn8y/Nd6D7yqvHcMqcGxSooKxpEsTrXto4dDh2ELOPKTRclcU/0N53DnX24/8AxZPe1d7r62lw+lfU11RFT07NXSSODQF5X2K2ll2Wxd+IQU7KiUwuia17iACbam3Hhw08qi7S7S4rtHV7/Fqt8xBOSMaMj7GtGg8vFYZsEss0/Q6MGeOKDXrZ0ruhd1KlxKkmwzBqSOenfo+oqow4HtYw+8+pclL1GzIZ1tjxRxqomGXLLK7kafYGB1XtjhMbRzZ2ynsDOUfcqzHKttZjWIVLCC2aokkB7C4n+Kv8BadndlazHKgFlZXsdSUDTxsefJ5ANAfisWXJx5ybFJVFIkZwiMijl6IvVEEkSEKbRYnJTHS5b1KozlGHFJqxxk4mthxqF4GYlpPG6mx1LHNuyQH0rDh/Wno5nNN2uIWbxI6FqH6m5gqHatkcS09ikPt80kBYuLE6hoAz5gPzlPix4htpI/UVjLGzaOoiy/e5zOBJ7UYZI9oJykdo1VTFjlNYB7XG6n0+JU8oGSRo7CVm00aKcWPtcWvyyF1ug9SIsl3oINwenpTueJ/PcD1EFRxI7OSASWnkqbZaVkjdlhySPfc9PWjIdHo037VHlL5pLlx9aejGRosCR0klG5DSFkOAzSm4/VCKRwa0GxAKeYG3B1I8qRJECbt1HUp3dhsQ6POzMRcJBijcy4A1U+NgazUg9iizNdnvky9Vkbw2pkV9GB0BPUVKO+I9Bzh71IYXPdlcGkfajbSPNZG5kpDcw09KamJRRWmmkbYhrS0dCVlZmGcNbftRSMnBAaSQjexj2tEoBI6kOYbUZjukMjbsxPuzc3C4kb2Gi7V3RI2N2XnyXHKHFcWIHJXRGVwTMJe1Qm5LkEXB5QQKixm+Wk84+9ITkw8c/wA4pFl6kfZRzP2mTcO5r1o9m/y1/mfFZzDua9aPZv8ALX+Yt87/AKDMIfimjcQ1ri5wbbiTwCqK/a+mwzPHTE1EhsSGtBHrI8qpdvsTdFuaGN5aCM0luJWRic1xy8QV8/FWkeo3Rpq7bbF6okQmCmjPQ2JpP2hVZxGreS6V8b3H5xhYf4KKI8p0S2t1utVBC3EhuJ1Q5PiT/uGfBF4RqWPa5hiblN77hnH1Ji2V9xwQlbcG3lKbSXQLvqeoO5xinhvZyjrHMYJS3K8BgtmHHoWoxnGqLBMKknxSSKOEacpoObyBcX/6PGNhs9dgkz7bxoniB6xxH2rre1WzlJj+FGGqccwbmieDzNEmlLkyVcXaMrgvdBpaOpLs1DU0kjw17oBZ8d+FwdT6FSf9ICORr8IxOHduilBhc7dtcDoSDw7FXbCiiw2tEGMRxVM0tU6mjGSxcBe7tOjRbDu54U1vc8b3tcR0c7Xtv0Dhb7UnGMOSKbbds4JSYxiNI/xUzGjotCy3uWjoNt5wA2vjiPRvI4m+6yx7xmF+hIdpoFWxNCtnWKbFu+og+CSF+l9I239Vk5PWTCCXWPmH+rb1eRcswqtfQ4jTyMcWguDXC+hBK6XUa08hHAxk/YstijNDbuLMO7EKi7tYun+pZ8FY7NYjP3vNcxc79Ez4KkcBd3pUzZ42gl7XL3syWxHkxbs0xxCbrj+qb8Eg4hP1x/VN+CgFyFwuPlRdsmnEJ+uP6pvwSe/5+uP6pvwUPgiJ0RSC2TTXz/s/qm/BINfP1x/VM+ChlySXIpBbJvhCfri+qZ8FtMK2io9ocNjwraWdlNWQty0eJmNrg0dEcgtze3o9/Oy5DOplBMqM3E1e0ODY9gRzVlMx9KdWVUMTXwvHWHAe+yoHYhP+y+qZ8FNwParGcCGXC6+WGI8YjZ8Z6+SbhXB7oNTJrVYBs3VSdMk1AC4+ohT5l6WV5X60Z6nqK2qmbDTRCaV3NZHTtc4+QBq2dBgseAxMxHbaSKBls0OGMYwz1B6A4Achvb7lUVHdFx0wuioDR4XE7QtoaZsV/TqR6CslUVEtTO+aolfNM83c+Rxc5x7SeKmnLk+QXGPTmX+0m1dfjuIGonEMcTRkggbG0shYODW3CqTiE/XF9Uz4KEkkrRRSVIltt22TfCM/7L6pnwQOIz/svqWfBQC5FdKkKyw8Iz/svqmfBAYjP1xfVM+Cr7lG26KQWWIxGf8AZfVM+CdbiE46Y/qmfBVYNinM+lkciWWPhGbrj+qZ8EnwjP8As/qmfBQA66UCk6FuaJ3hGo/Z/VM+CMYjUjgYx/umfBQM1iiL0rXYacutlq3GKxvCRg/3bfgpUG0tdHa72OH/AIbfgs+JB1I94CpcIstZJL1NfT7VSEgSNYOs7tvwVvTY+yYAZox2FjfgudB/UltfY6LOWGLNo6qUep1GPFwG2aGm/UxvwUmKvcQ54a09mQfBcvp8QnhHIkNu1XVJtBI9wa8AeRc8sLXQ6cepUupvGzvc8WLA3p5DdPsS5aotuAWHq5Dfgs3S4gJG3Dtb6hTontlF2kkLBxo6E7Vlg7EXR6kRtt0hjfgibjQJux7CR+o2/uUGVt/m3SI4Y85swDtRyGSH1rHagWTZna46BJEA1sEnJY8LI5AZzuhOzbMz+ULiptdq7N3Qf/tua3WFxl3EaLrh+Ejmn7YVhdBGTrwQQBYzfLSecUmyXMPHP84orL14LyI5JPzMl4eNHLR7Nj8df5llncPGj1cYbVCjfPK7nGMhnlW2WLlhaRhBpZeZnNqnGfHqsvBIa4MHqVdHyea2ymmjqJJHyStu9zi46oCinFhu148dPNJcj0Xlh0EsdydeKVmShR1A+YjFJP8Amq1hl7ouLASBcIhrcdKd71mHzUBSzB3NRwZe6LiQJmyuLS4BtHRYjEdYJLkdbTxC9e9909Zgr6mnc008kRlYR+aRdeNZKSY6hlyOhdz7nW3OH0OxDcOxer3NTEx0TWkXJbbRTLBPrtFxIFJhkrWT1ONvjvPIe9qCI9p1cB6F0DamVuMdyfFacy7yopYWslJ452uF/cVzyh2hw3vt9dUPaBSwCOlp7cX2AzFXWEbV4PT7FYph9TWZ6ysifK420Mjje32q54JNLyjWSBxdpzRMP6o9yaPFPRwSNiY0t5QaAUW4kvzUcGa/tDiQIsxOZluN107C6g1WBRSnUmE39Fx/Bc2kpZi5tm9K2GzmIQ02DOp6p+SQZg0ddwk8M1JMHlg00Ub+cfSpWBaQSecortSdLWuE9g5tC8frL1c/sqzzVV8i3ukklNXKGZcJoOXKF03mQzJALJSCiLkkv0RYBoJsv6kkuJCVgOlySXJokoDVFgOA3KcYxzjZrS49gul0dO+olDGC/WtRR0cVJGBG0GQ8SVnPIomuPDvM4ygqXjkwv9SbkpJmHlxPHoW0bE97gLW8iIsvU5XC47QseOdHhUYd0Dr80ojA8fNK3LqBhJIa2yjSU8UHPLFXHRL0r9DHiMjiEYAC1m7jDHZ4mgdajPggMWYRhNZUxPSszRA6wiynqVvJHCOdGlMooZG3aHBHERL00kU4JCWDorN2FvBuwi3ahFg08rjkLUb4kPBMrL9iQ86qzlwmdhLX2uOFlXTRPiJbILOVKafQh4mupHJsUA8oP6UzdUSkSA9LD1FBS2m6Q6JQcltcRqFFBKea7RS1ZKtPkXeETmWoiic8sffR4WkilLag8o24GyyGBgur2kcG6rUxFwdydblcuWj09O3KJoKaSN8WUudn7QkMabkgh2vQjoW2jvI3VAMYwlzTkJPA9K5WzoSoDn5Tcm1kxDOZnuAtYdqkudcahp7ElrIrnkZTboSsDMd0SPLs1Mem4XFXXuF27ujsA2WmIvzguJHVw1Xdi54kc0/bE2u5BAWQVUItZflX+UpKXKPGv8pTM8ghZmcOyy9iKqKbON820TqD56lqkpMRyZvFX/8AN9yk+FP2P733LWGfGl1MZ4pt9CyTjIpHtLmRPcAeLRfVVPhX9j+99yu8B2lxSnhmp8Oq2UbDyiHyAAn1JT1OOKtBHBNvmhoU898rYZD0c1P0eG1tdI+OipJ6iRnOaxhJHlWsx7a3GHRYaaWugpnMpw15Mw8Y655XNWY2ZxdlXi9ZLiEM08joy4iKo3Ze7o1ylYLXJxukaPTu+hKptl8cqTK2HC6kujID25SCPKoOJ4XWYTO2DEaZ9PI4ZwHi1wt9Bta6uqHtxfCYm0dRIAaZ0pzZmXsc1v1upYvbvH5K6bD5jDEIGwmOFsZsA0WsFOLXKUqZeTSuKtFV5OHWi0TNHP3w1xDCCTqAb5U3U1rInMGSxOhBOo7eC6PGYW9rZg9Nkq0SrIadSVu3mHOLX8qh09UZ3vDWCzOku4/Yl47DK2pdCpaTImiWiTFROYYS8RB2v5/AepCmlkqGOIiym12gu+5HjcVb9wPTZd1D6Cg1Fc6CTI+LUDXlfcm/Cn7H977la1GJrdZCwzTposjwPkTmFm0T/Kqg4pp8j+99yVR4rkjcNzfX877lhnzwceTLx4ZL0NFnRF6pfC/7D9/7kRxf9h+/9y4Vlj3NuFK+hc50A/VUvhf9j+99yPwv+w/f+5HFj3E8UuxeOILUySqrwwf0P733JJxf9j+99yOLHuCxS7FtdC6p/C/7H977kBi/7H977kuLEOFLsXBKMEA6qm8L/sf3vuQ8Lfsf3vuS4sQ4U+xqsMrDSy52tDjwWndMHgZBdxaHC/C65izGcp+R/f8AuVrRbVuYwRyQAt8/X3LDJJSOjBujyaN4ypkZlu4XPOAS3SZySRqVjxtJazm0npEn3Jz8J9B+Lf4n3LFtHYkad8ji5rCbJ58sDhkc29llBtMLEGl4/tNfcmvwiykEUpIH7T7ktyKo1swaWWZzVFDGOu3NltwCoI9piH3NLp1bz7kJtpg4h3eQFv2n3J70hUWNTRy5iWWsnqWN7ICHWuqpm1DXuAfR3HT43/lRP2iaSSyks3oG9v8AwRxBbS2a6SNpDtUqme7vkPPJe08BwVI7aZkjcpoiT/4n3JcO0McLmPNGQBxG94/Yp32Cj3NpNJmhu+PN5FXYnBRup88jbgalZOt2vmrqprWQbmFvQ2Tj6bKNie0+eIQMpyGDiTJe59SuFXZE+nIcrnQGV3e4s1QnHVVjsX1J3P733JPhQu/qf3vuXSpx7nA8cm7LVpubJ1oVVHidiLQEnzvuU+GaolJtSZe0v+5DyxQLDN9ESQlxMdK8NZxSoGhus7Ljqa+38Fa0eJUNOyzaGRzuvff8qylqF6GsNJN82WOCQNp2XzN3vE3V9vonC4At0rKOxmnsclEQ7rMv/KljaVrWZW0At2S/cuaU7O6GPYjc09QHtDb2aOCcMkZ0OqwcG1D2yG1LdvVvPuT52ou7lUZA7Jf+VZNl1Zr3vDiWsBsgXZLDM2/UsvFtaY22FGCO2X/lUasx7vtzSKcxkfmy/ckw2lh3Q3X2XlbcXuLhcWPQt7tVi7n4M+N8J4jUvv8AwXPWVDHva0sIv2rvxNbKOTJF7rFGyCcIH5pQWlEFtIPGO8pUHEx4hvnfwKsHjlu8qhYoPxdvnfwK9iUf6P6HIn5xGBYTiOMVTqbCKCrr6kNLzFSwulflHE2aCbajXtV7+AO2H/dPaD/06b/2pHc0poKvaSSKqginj7wrn5JGBwzNpZXNNj0ggEHoIC75tbh2zrMKx6ip8GwCOqgpap4bE/D99G0U8bmP3bYxMOUX21zAglxILQPNlJxmoL1V/OjsWO0pPvX+P5OCM2F2ukvk2Wx52Ulpth8xseo8lS/wDxinw6WqxfBdoKOKJpfK9+GShjGji4uIAA8q6fg+D4FR7aySuwXD3S+H8TbFLI57G0zaaFksQawSxx5Q4m4dYW0uBqIW1mC4E+OSeiwnC5a+bDhinfr6t5a+c17YjmPfUsOQgnNd51uSW8BDm3S7/ur7/Bmvh5Rtr65127nOKumocSoWzwS1pp6CJrJpWU5c2PM6zS8g2bcmwvxKpYIaR2I5BVObTCx3rm8T5LrvexkstbXTslpNn8KgkgecRqKDEsEMMdOSM43baaR+TUAB7yL2zO6VX7MPrKnuhUlPRy4Vh+FFtSxgwvFqOnqKwZXGFszaOaJr3h5YA1uXidbXcoi2nt9OvX6/Qzq+ZhJ62egrauoqzXwQ00wZLTvpXNMbnAlrXE80kNJAPUVm9oK+lxCGmkikmMkd2lsnVpqvSVRjGJ19JiL6jFe92VNLLVNnjxJtM1rmtfHG5r24rIGM3pDTZhaXWDuFx5rrHUDsPrnYhNXT7SmtJMoljlp3x653OeCXOeXahwJBGt0sSV39fVl5YtRX6/yRsNq2QhrHhxDjd1ulX1VsRtZLKHs2R2gsDr/1dNYj2Vk4yN43yjVdN222Shxfa/FcQpNosLMFdUVFXCW0tdIHxNe7O4OZTua5rbG7mktFjqtZY4xal3v5V/v/AMM4tyj+VfMo6aixWeslwyDA8TmxOEEy0UdK90sYtxcwC44jiOkKBVbLbR4VBLWYls5jNJSNIzzz0csccdzYXcW24m3pXS6PE8Nh7pG1tdFiGF1lLUUfe5baWUOiDInOmGWlnjLRkIOdumtxor3HcHeNi8Sio6OihpMUoo5u/oaKQxNhzNlDi6mwuPobqHP0vqFzRioxTrqlf6mqe9036nDMRhqqg0jI6GpLaqzKVzY3WnN8pDNOVytNOnRCGXvHe0tTFJT1MbzHJG9pD2kGxaQdQQdLLt0mJUlNUxx4FgGFVXeuHB0eIU+0dE2XD25RG4Mmc3kgbxgGdoOd0jhmJzCLhowqr272NqdoNnp++p5clPiEeN01cK6SNzQDOYWBpLLjlCznZQHZrki6jW1rl8/rkRuaW/69Dl1ZsNtbNO98Oy2PujPAjDpj/wD5Wdfh9YwVZfSVDRSODKgmJw3LibAP05JuCLHpC73s+ySs2dwuqlwfZh76jaSOd5fjLrkljTvTmqrmbU+LOv6mqs9lpcG8LY7LX0mGUsNTj9bBViSLO2Wnj3RdvHSQTHJms83kiaHG4I0s45XFONdP9fyEsVy5/XX+DzOU9R0lTNR1NTDTzSU1OW76VkZLIsxs3MeAudBfiu/bWTTDYvGqY1FX3vHs3Q5ad2NRSQsN6bhRAZ4z+uTbU/nBc87nUlFH3OdvXYpT1NTSjvDNHTzthefHOtZ7mPA1/VPoVZZNp19c6Klh4dc7/wDif7mMwzDq/F6sUuFUVVW1TgXCGmidI8gcTlaCVcfgFtj/AN1NoP8A06b/ANquthX4ZNi+PyYXS1tHQswCt3oqKhlS8ExluYEMjFuU0AW49OulzQbL7NYr3O4XYdVYrNO3EZ3GduEQCpe1kDHOYGmpBc0C7rBxPO5Ol1hO4q36Jf5omHmbXx/ZM5i2grXVstG2kqDVw595AInZ2ZAS+7bXGUAk34WN+CbpKeesqY6ejhlnqJDZkUTC5zj1ADUroXc1xDD4XYvOdnsNmhw7C6t7q6Z9SySTMx0bGvAmyAvLw2zRfXQ3F1JwPwLUYDg+OM2Zipq0Y+yiDMLq6lkj2GInkGSV1nh7mEG41AHC6bTTr8vm6Fcdt/n8lZiBsxtB4K8J+A8V8G7ve9995ybnJ+dnta3bdQ6rDK+mpWVNTQ1UNM8MLZZIXNY4PBLbEixuASOsA9S9S4TPh0clJWVlVQuxGRzcOdUOMLZHTNdGXQnIS0Oub5Gki/DTVZnbWKObFMVbFvjOMMomzRTPe+kqInT2yyRRsMt2m7g9jg4dA4341qJPJw6NHBRjubOAU2EYlVUE9dS4fVzUUHytRHC50cfDnOAsOI49agruuKg4BsbNhmGYLgNdiIxSHNTYTLiZsKilflPKka8ucy4sCWkOIIvdcKIIJBBBGhB6F2JSbaoztbU7BdC6JEnw5C3IVfqRXtwQREaI4cgsdZPIw8l1lIjrnDni6hBDVLhNlKdFoyvi1BbxTr6+nc0DlWHUFTaoapcF+o+MWza+FvBriiNbCTwcPQqrVHZLgsXGLZlbAG2N79dksVMLv6yypfIUACjgtjWYv2TxXsJ2gqJUVLmyERuB/W4qrIPWgC7r0S4LCWayU6ZxPFNOde/akAlAlVw2Z7rCJSm6JJF0E9kvRBaJVOHPkaGGzrrSxhzWi5JcBqskHltiCQb8QrClxV8fJl5bevpUTxTfRGuPJFGkzXAaHAE9F0HREEWd6lRnFIA7MwSNPSpEeOQtblLXuPkWXAydjdZY9y2bGHae9LbEWA2trxVT4epjwjePQlDaCnHzH+pTwZ9h8SHcsg1rTcgXRggjk6eVVLscpXcWyepJ8NU975ZPUjgT7BxYdy5yC97XROAOurfIqrw9ARYh/qSBjFKQbiX1JcCfYfFj3HtpreCXm+twFhoid6zXpC0+L4lDVUDoow+/HULMRtO9Z5QuiEXFU0YTkpOyfmd1oIwCUF1GBevHKKg4qPxdvnfwKsTxKi4hCZYLMBJBvbrXuSi3h5djgi6yc+5DwPF63AsRZXYZIyOpY17AZImStLXtLHAteC0gtcRYjpVwNt8WBB712f8A/QKD+Ss8aeb9FJ7JRd7S/opPZK8xwd3R2710s2R7p2PtNW6njwuF9TW1Fc97qCKch0zWte1u9D8rC1trDUgkEnS0Sr7oGOVmD1WGVTcLdSTU/ewEWGwQOiZvRLZjomNIGZtyNRqTa9iMx3vN+ik9kod7zfopPZKjhfArju73fXUucJ2mlwrBMQoKPD6ETV0LqeaudvTNui5riwDPuxq0a5L9qPY3a7FtkMS79waWNkrrB+Zl87Qb5cws4NJ4hpF7C97Kk3Ev6KT2ShuJf0UnslDx31RO5VR0Ki7su1tLhjaV1WamVlO6nbU1NRUSPs5znFzmmTdvdyrXcw2DQFkJdosVqcLqMJ38baCrqxWSU8VPHGwzWLQRlaMosbZRYdirO95f0UnslX+y7YII6nvuCSWaUsjiiawlx46hZZYcO511/wDppCe51f10/wAciuo5JsExyJ9TQ01ZJTvDjS1LXPieejMGkEi+tr2Ntbi4UrGsX2g8PMxDEa2qZicQa6KaNxYYhxaGZbBjR0NbYDoWnx3Dqiix+pm3OIUErjYufTOc2TydSVjdJW12GvrmzVUeHOAhINI7V4Hk7Fz8d2my3jVUQ6XukYwKuaWjwzBGV9flZXTtogTXN+cyRpJYGvOrsjW5iATqjxza52IV0MGJbG4DJVU0DKWIB1aC2NjbNAtUa2HSdetQdgcOqaifEHRUk8jooc4LIC8t1GtlposNxB8uEzPo6100ksjd46mLXOsx+mnVb7EsmTbKioq1ZSQbe7W0MNWyocyWjlp+9hS1FJG6lgGZjrsp7bppuwa5DxJ46pkd0PGpK3Zyo71wzeYJM+WnENG2CN7nuBOdkWVvEDmgHrupNZS1T9l8ZkacSqI2StDnTwuAZyhoCq3Y6jrt657G/i0gc1zcri4G2htZUptx3V0JlG/I3yGcexLF8RjwzB5qWKnhpQdzT07CGve8gulcSSS52lzewAAAAFlO2f26xvZKlhw+jpsPBpa11SZJ6USvcXNa10eZ3NY4NAOXK4gkXsbLRthxIT05Ju1kD2vcYXXz65Tw8iz+11FXvpIWkAxxszSuLHNc91z2KYZXLy9ypLnuvmMfhviE7sZmqsLoayqxdwFTUPEwcYg9j9y0NkDWsvG0aNzAaBw0tZUu1UtBs7XQ0+xeAR4XiLo21DM9cS8sdmZxqLixPQR2qDsjLiddHBheHUVU4xB0rzC0lzm+QeRaE0WMfoMUGtrWdZTkyOL20OK3LqZuDbMUEFVDRbLYNRxVkYhqGsNWd7GHh2QudOS0EtF8pBI6VKpe6L3pQU9FS7MYHT09NUmsi3U1e10cxaGl4eKnNezR0qHthJi9IZMKxGjnjDy2aN0zSH5fSOGilbD4TjOLOjjp8H3tDFz5u9C4nsvbirblt3NEbVdETG9osS8FUNCcOoMPwiR4qXUdMJA2qcHE3me55kdxsLv0HCx1S4tvamlkwoYXg+E0NPh1Ya9lPE2Z7JJ7NAc8ySOcbBosA4DsWmrMKxupw2pqRhERfFKI4s8BLWt10JtxWL2npMWpBDT4phsVKZRvIyyDKXDrBslim5PkE4r1ZZTd0XFqjfU9RBQTYTLCIThb4397DUuzizs+8zEuMmbMSTc20Uun7puKxT1Yp8PwxlPVUcGHGna2YNbTx3Aia/eZwHXOY5i49BCi7LYbiuIUlN4Pw+KqijfknaKXM+IdZNuxFidDTGV1ecEre8nVJgbNHcR5weFuvRDlFOmhqPrZbzd07aTDscnnqKHCGucyMCm71ytZkDd0/O0iR7mBtml73WBI4Ern74J4oWTSRPbFJq11tCtJ3QKfdYw+M0NVDVhrC5zwQC22gsUmhppN1SxwTVNXQTPa2SlbES8O42A4WuE97jHdRCxxbooamjqaXdGohezeND26XuD0phwLdC1wPEAjiF1LEMLxRk1SY6bGWbgRgxsgcA1rrWt6wsdtdQYlT40ymroq0tbkDO+I3NJDrH+KePPKTocsSRnzHL3vv8hMObJn6Lpynpp54JpY2Exw2Lz1XXSPwTlkpDStwqrMTXbxrGwu526zDoSKfDcY7xqO96GsyZGB+akPI5diO3RRLUv0GsKOZXt1/BWLMIxCSNkjKV5jeLg6C4T+09HWMxKYzUtRGwttHvIizMLcfXdbanwOorPAsE2HSSCaAZQ6J+ZwuebydVeXLKMUyY44ydGDGCYoTZtI8k8OUCq+UOikcx4Ic02cOBBXS2YJLR0c1fBhzWSwT5A8xyZW9h5PFYKahrazF3wMp5DUTykBoYRcn0IxZpTdDyY4x6BDB8SLQRRzOB4WA4I/A2J6WoZiLdQWy2b2a2nidX76lrHNEBAtmcGn1aJX4O7TDZANFLWGbvkcrlWtrpmslxp2GyNWYR0D45jE5r99fKW21v1BHNS1cLC6SkkjaOlzbqa3A8VZtBDQPinjxGRwy6Euub+lbCrwnH4WYPBnqoYnBzZJJGPJkcLXsLa9KqeWUXQRhFmAnpqqnjhfNA5rJW5mHLxCj7xxIAAuTl4LplXFXSVj2vqZoYBGRCGwu6PnO04fFc6nbOKx+9zPdvOU8NNn2OpCWLNKSYSxqLJxwPFdPxVrbi+rgCmanCcRpqd881O0RM5zgQbLWYrTw18sdRFSUM7TEwZ5s4do0ac0pfgWrZg0rpqKmo8KqDZ1RC17sxGthdo6Qs1nlfMp440YASuJAa25Jtw4lSZaOtiqm0zoCZ3NzBrdTa11N2dgrJMbjioMPkr5sxELBGSQeh1rdHFWmMYf3jtDNBUVtRQ10TQZ5JWOBL3DgOkCxC1eSV0iVBGfdQYgLk0coAF75VCErybBpPkbcraOwqtdhnf5xyp7wc/dGUtflLur7QqTAaSo8LPZRVDGVGYRxF0ZO9JPQLcUo5Z02GyJTl8gF3MIHTyU7UQ1NMyF08eQStztPWFrcXiqqBlTBj0jJ2R6Pp2RuY7NbheytJ8IhxLEMOw+fCKwSmi3zAA67Wa9FtfKoWd2Vwkc2MsgOtgiM7tUHwyB7gIn2BI1BRbl/TG72V0Lc1ZFRD3sluH2IGWTq+xJ3cltI3+pEY5P0b/Uk9wvKKM0n+ghvpP9BJ3cn5jvUkmOT8x3qU3IdIU6WQixSI/lWXA5wQ3b/wAx3qSoonmVpLSADfUJVJsdpInNQQvZBdFGBqGwEi+gv1obkDifUnGtYWi+Ym3QE/TUb6meOCBkkk0jgxkbGZnPcTYAAakk9C+ixryL8jypy8zImS2oYD5Uh0Zd0AK6l2dxKPFGYY/DMR8IvGZtIaVwlcLE3DLX4Anh0KFWUslDVSUtVTT09TGcr4po8r2nqIOoQqfJMPMuqIO5d0BAQO4mw9KuK7AcWoqunpa7DMRp6mpIEEMtK5j5STYBoIu7UgaKFiOHVOG1bqXEaWppKloBdDURGN4uLi4OvBTcX0YeZdUQzHY6C5SXNPUFM7ykNGavcT96CTdGbdnJntfLm4XsCbdSfGB4icL8JjDq3wbe3fZp3bm97Wz2tx048VLpdSk2ysLCrnZXGJ8FrgaanpJJJntG8mjDnRi/zbjtUObD5qekgq5qeobTTlwimdGQyQt0cGu4G3TbgpNBs/jGI0b6zDsJxKopGXzTwUz3saRqeUBYWWOaMZxpvkaY5NT5G92l2nqcO7puKCsxWriww3YGxPNm/mkAHgk4xtDtHRdzmJ9XiD21lVWchxILpICHa6HgdFz+fCMWkwzwzNQ4i+heda18DzETmy88i3HTjxUB8jpGsbLPNIGCzBI4nKOzqC4VoYtp9jo8Q/U2ncuqKekbtAKnEm4bvaQRsmubglzTcW8hWwocZwmal/CCLEq1zsEpzTnfuuKiQtyh4FzrrdcXLW6HUlv2DsR6ZSwPkyk5rA6X67IzaBZMjkh49VUWdLkxLGa3uWY3PtBMCKmSM0oc4AuGZt7AelUfcfpopdtoBUxxPZuZOe0acl1uKybnnI1sss0jG6iMuJAPkKQHujfnilkjdaxcxxadejRNaTbBwE89zTO3ywsDpA0T5QXaB0NuPnrJd2qlp2VOz5gijY40hLnANuTmdxsub7qLW/HrIufWnJJC9rGySzPEYs0OdcNHYscegeOaZpLU7kdA7j9PV4dikmLmkdLRyQuhaY3szZiCODiNNVuTE4uJDJtTe3elNcenP9q4G1xYAGySAceScvuQMjr3M09vPKnNoeJLdYY9TtVHQ+69S1uJYu7GGURioooGROc+RmY2J4AE9ai9zvauekxnDqXF64Q4RTRyBrLWaSbWzAceHSsO4l0VnSPdr0k29SZs3ozW963jpls2tkPN5rN9gzKefuW4tDNOyGOXE47uI5o5WtlB7otbQVM+EUeF1ffcWHUgp3zNFmuOmoHoWSDzkLBJJuycxbfQnrISRl4a27BbVRj0ig7QSzWb/ZbFKLYfDG4jHJHWY3XsDTTxmzIYTzsx6XcNFHlqhVYnVYLskzf4XiE8dRuZQAYnA3IBPC1zqsQAy+tgDqUcT3RODopJI3gaOa6x+xEtLb3D49KjZ912Vsm3dW6F7ZLRRRksOgcG6j1hPVE9PsvhGBU9JLEcUmlbXVVVDYvjYeDAeuztfIsPcEm7iSeJdqTfrug0Nbw0HWOtX4bdFQFxalZ3mDaah2gxOopaHaOq39XJG+BoBaY8lsw6rEArBd1jEG1O2jjDiUmIQQOYcpNxE5tg4C/kKw0cjo3tdHI+N4uWuabFvWLhJJDszrkl3G/T5Vnj0XDnbLlqG1yO54Pt/g+I1zKOlpa5lbMwtjkkLQ3ebnJryuHaq+DaiDZcDBK7FanEJqxz+/KpkjiKUOuGhhPVoSuOtdYgtdlJ4WJBCmRZQwEvuHen3qZaCNtIPFSSLfbHDcTixWGlqsQdiDJrd6TGcvDmONgdeHauqYZjFV+FngOhr44qShwkszOdZoms43v2XC4Y+ZzX5XPJy6dZ9HUEDPKwlzXkOta5+cO1Xk0m+KiTHPtdndcF2pbUyijfjDZcVw4OtE0ltPXuPNJPYdOC5HtO+vdjtUMaFq02B5QOhJsARoB2qjz3DWtOW3DTh5EgvL3kyOLidHF2pKnFpHjnYTz7jotQ2n2M2NrIHTxSY7jDAwsjdn3EOurj0nVQuS3uJ5BkuMWvkuOFjqsPawvcnoN9Tb4I3Pdut2Hu3RdmyZuTm67KlpFW5hxbVF5sHPBBtlhVRWzsggjkzySvGg0XUJsR2exraKhrKConl8BsklfUvAbFYi1gL3JJt0LhxHAaDp7CUpsjwHhsjgH85t8od5bIz6RZZ2hwzbTuuFVTcZwuCMTwRzV+GTZWveBlc6WM29V/UuS1LZtkNpJYKOeirJqdojLzGJI7kaixFiehUd7i+ch1uSOr4JJ0GttNR0g69PaowaN47Rc8ynzOi4/tRGcNwirwaPB3VUw3VTTPw+PNG8XGbhaxI+1Xu1GP4ngvc7wWOup8KGJSVDnug72jcGs5Ra7KNB0arjtsrrggX7eKOSSSR2aaR0jrWBe7MbdV+pD0ceTFx7Rd4LtFiFLtEK+klZT1NXKyN4iYGtDS4AgAcPQpndYcTt/ibswdpFck3HyTVlOFiCQ4G4I0IKVM99RJvJpXyPcdXynMTp039S2eCsm9eiFxORv8VoanDO4/TRV7GRTTYgJYm5hcss3Ww9KqO55iuEYVtJHX4+JXspm54RG0OOfrIPVosxNNJUBjZKiV7WclolcSG+QdCaAAublRDBUGpeoOdNM6/hEuzG1VFiWBNNbHFO91c6vqg0GN3TrmJtYBTMGlkxTbDENooGNbgsFC+hpJC8AucBoAOPErirHGMHK99zoQ02BHUVaYDPL3xOxryIxR1bg29gHCnk6OHUuaWkcbcTVZb5DDqKkaSJMcw1j7m7bTvtr1tjIPoJSO8qDicfw76up/lLPucb8QpAoq12HPr20s5oWSCF1QIjuw8i4aXWtmtrbir4kkuo9ifoW/edAG28PYb9VU/wApJNFQfT+G/V1P8pQMHwTGMbMzcGwyuxB0IDpBSU75SwHgTlBtw6VXFzusJcSXcNiL80FB9P4b9XU/ykRoaH6fw36up/lKgJPYiuemynfIexF/3jQW/wC38N+rqf5STLhzdxJLR11JXNjGaQQZw5gva5a9rSRw1F+Korq52TJ8LSjSxoqu4/8Ax5D7wEt7DYiFqgnLnrCC1ozNSyRwY0NsNOpazuYOcdpZmQPy4hNQ1MVE7NlIqHRODLHrNyBw1IWZikvGwBjdAOhGXkHmM9S+hUN+Hb3X7HjuW3Ju7O//ABnXYqWqGwbMAZFK3a0YTK3vWx74EBqmv3WW17mMOOTjlPDVSYYqSPaHAqrEsNjlnw1mG01diT6rL3pUAOGR7PnnmAn5uWxsuNtLnc2Jp9AsjORvPDCfzQFzvRN35urv/wBfP16fTvoa+J5Ul6V8ku3w+uTOjy4djNPs3S4XitPXOx+XF6ipbTRzbqplgMNpiwkE2ebgWBz2Ng5UfdPpjFJgEczX0hiw2OIUNRrUUrQ51myu6Sb5ho2wIGUdOQNQRpHE1o8iENVJDPHNG1hkjcHtLmhwuDcaHQ+RaQ0zjJSb+X+/ruOWo3Jqvn8b+v8ARptuS3BsNwbZqMEOpYRWVgPHvmYBxB81mRvrWwtUBjsVlLvwaOyferJeMWcxhm5zWA3m+ucvHp4LlmI4hUYjX1FbWkS1NRI6WWQgDM4m5Omijbz9RvqUS0zlBRb587/Xr/oqOdRla6cvk0/nXM39XPV41shsQK8T4vNJik8O5nqXB0zbwgR7wm7QeF+i6n4Jhc+Jsfg+O7MtotmqSWukbiG9lPeDrkEGXPu3lrmNbZzSTbtueYGX9RvqSTIfzG+pTPTNxcYuuvz/AFFDNVWrr/f8nRYsKxrZ7ZCoxCSixbE6rFcJELZWwSPpaKidyruk6XZWizRZrAbkk6DmNv8AVlJ3h/Mb6kbXOebMY2/kVQxOLbfqKWW0kvQ9KdzLup7D4RsThOH1FX4NqqeBrJ4e9ZHZpAOU+7GkHMbnjfVah3dl2CabHHf8nUf+xeQ3SBmjGtzdJsmjKbnkN9S8+f2VilJybfP67HXH7QyRSSSPYH9M2wP09/k6j+Wh/TPsD9Pf5Oo/lrx7vDfmtQzn80epZ/dGHu/l/BS+0cnZfX6nsH+mjYH6e/ydR/LQ/po2B+nv8nUfy1473n6jfUiLzfmN9ST+ycPd/L+B/eGTsvr9T2L/AE0bAfT3+TqP5aL+mnYD6f8A8nUfy146Lz+a31JOc35rfUl91Yu7+X8D+8MnZfX6nsj+mfYG1/D2l7fkdR/LRf01bAfT/wDkqj+WvHhce9wcreef4JkuN+aEn9l4u7+X8DWvyP0X1+p7I/pq7n/0/wD5Ko/lof01dz/6f/yVR/LXjbOfzQgXfqhL7sxd38v4H47J2R7J/pq7n/0//kqj+Wh/TV3P/p//ACVR/LXjXMR80Is56m+pH3Zi7v5fwHjsnZHsv+mruf8A0/8A5Ko/lrkfdc272c2g2kpqrCcR74p2UjYnO3EjLOD3m1nNB4ELiGc/mj1IZv1R6lpi0GPHLcmyJ6uc1TSNwcdw4f2kfVu+CHh7Df7z/hu+Cw4eRoWi3kRuOlw0WXRwUZcRm28P4aP7T+474KVFtDhbYxmroxfrgcT/APquduf1AKRHUvawDJEQOtoKTxIe9m1kx/DS82qgR17tw/gk+HsOA1qf8N3wWGfIS4lwbr0WQzHhYFCxIXEZuTjuGg61P+G74IeHsMPCp/w3fBYbNbQjRFfpAT4KDiM3Hh7DgPyn/Dd8EBj2Gn+0/wCG74LDZ+tqDhcXCXBQ+IzcnHsN6aj/AA3fBF4dw235T/hu+Cw2YjQhC/UEcJBxGbfw9hv95/w3fBH4ew3+8/4bvgsNfTmotDwS4KDezdeHsN/vH+G74JIx7DL/AJVb/du+Cwx0PBJvrwRwkWps3vh7Dv70D/u3fBE7H8Nt+Uj6t3wWDJ7ER4DkoeJBvZu/D2G3/KP8N3wQGPYb/ef8N3wWEt2Ij0qOEh72XO01bS1tRE6k1LWkOfltfq9X8VHwL8sqNf7DV/8A9eRVp4KxwC3hExkgGanqIGXNuU+F7Gj1uCJxqDSCL8yZmtF0CnxCsrO4hisFXV1E8FLi1JHBHLI5zYmmOYlrATZov0BYGaKSGZ0c0b45GmzmuFiD2hIPTouOStV+XydnTGW2Sl+fzTX7nZMB2a2gpNlqfA6GlmbjlBtJBVV0NO4PfDG6Fhhle5twGDlnNewvrZWuPbN4DjEG0O0FPg7KrEXVOIT4fStmla3FYN438ZADgbRBzyAy2e3TlN+CnyIHyLKeNyvn9Ul+306aqMq5fXVv9/8AAVkRCUiVsk6psVjuwmKbN0uG7fYe6mnwbNNS1VAzK+uZcuNPLYakk6O06dW6l2fnx1m0u3VdicOH0mGwSUVUyKlpWBrI2NpZGtGgFzYC56ezgsWrvZWN7Kqqq3NIp4qSoY6QjQOfE9jRfrLnDTy9Sz2U7KcrRCsglWQXXRzWbOGmcY25hksLG6U5sbDzS4/YrPaP/tau/wD5Mv8A+5VY7oX0eDzYov4L/B4+SL4klfqNvc5wtazeoJsi/Hh5E67gkFW3QttDZbqitf8A+EpyAS3DURBb/qySW9n2J5JKVlUNZez7EWXXh9ic6UCo3DpiWQ59Ro0cSje4NGSMWH53SpH9lPlUQcFLYc7EZdLW+xJLexLRFS2abRBb2JJanUlynkNJjVvIhbsS0RU8iqEEdiLIloFQw2hlv4oPPKYyqT/ZR56jFJjSCIRehGkqSqAfIit2I0aAoSAjsgUEDoIg9KDXZdOhAoik2G0D2Zhdh9CDe1zvUlRc5K+eVLGhgnXibdoRjTpRScSjQh7Q79XBAjXREjbxTsTQDwRWcBolFJCLHQdzfUIrXPFAoM5yVhQHAtCSlvTSLCg7lFrfVGgVNlpA9CB4IFEk2FA07Uk2RlBTYUEQLIHS1kZRFFgWEePYzEwMixWvYwCwa2oeAPRdK/CHHPpjEf8Ain/FVqCnbHsXb7lj+EOOfTGJf8U/4oztDjn0viX/ABT/AIqsQKlxj2Gm+5ZHaHHPpjEv+Kf8UR2hxsccYxL/AIp/xVaidxUuMewW+5ZfhFjf0ziX/FP+Ki1uI11flFdW1NSG83fSufbyXKilEltXYLfcJBGgpHR//9k=") center / cover,
+        #202a33;
+      border-radius: 6px;
+      border: 1px solid #313d49;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .video-frame::before {
+      content: "";
+      position: absolute;
+      left: 9%;
+      right: 9%;
+      top: 18%;
+      height: 36%;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .play {
+      position: absolute;
+      left: 50%;
+      top: 48%;
+      transform: translate(-50%, -50%);
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.86);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 22px;
+    }
+
+    .video-caption {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 44px;
+      color: #fff;
+      font-size: 13px;
+      line-height: 1.45;
+      background: rgba(0, 0, 0, 0.46);
+      padding: 8px;
+      border-radius: 4px;
+    }
+
+    .video-controls {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 10px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      color: #fff;
+      font-size: 12px;
+    }
+
+    .progress {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.28);
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      width: 42%;
+      height: 100%;
+      background: #ffffff;
+    }
+
+    .speed-select {
+      min-height: 28px;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: rgba(0, 0, 0, 0.35);
+      color: #fff;
+      padding: 3px 6px;
+    }
+
+    .info-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+      padding: 10px;
+    }
+
+    .info-card h3 {
+      margin: 0 0 9px;
+      font-size: 14px;
+    }
+
+    .kv {
+      display: grid;
+      gap: 7px;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .inline-meta {
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .inline-meta p {
+      margin: 0;
+    }
+
+    .inline-meta strong {
+      margin-right: 8px;
+    }
+
+    .kv div {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 8px;
+    }
+
+    .kv span {
+      color: var(--muted);
+    }
+
+    .source-grid {
+      min-height: 560px;
+      display: grid;
+      grid-template-rows: auto minmax(220px, 1fr);
+      gap: 10px;
+    }
+
+    .source-grid .asr-card {
+      min-height: auto;
+    }
+
+    .source-grid .asr-card .text-body {
+      overflow: visible;
+    }
+
+    .text-card {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .text-card-head {
+      flex: 0 0 auto;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 10px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .text-body {
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+      font-size: 14px;
+      line-height: 1.78;
+      user-select: text;
+    }
+
+    .text-body p,
+    .summary-body p {
+      margin: 0 0 10px;
+    }
+
+    .summary-card {
+      min-height: 360px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .summary-body {
+      min-height: 0;
+      overflow: auto;
+      padding: 14px;
+      font-size: 14px;
+      line-height: 1.86;
+      user-select: text;
+    }
+
+    .risk-span {
+      padding: 1px 3px;
+      border-radius: 3px;
+      background: var(--warning-soft);
+      border-bottom: 2px solid var(--warning);
+      cursor: help;
+    }
+
+    .risk-tooltip {
+      position: fixed;
+      z-index: 100;
+      display: none;
+      width: max-content;
+      min-width: 220px;
+      max-width: min(420px, calc(100vw - 32px));
+      max-height: min(260px, calc(100vh - 32px));
+      overflow: auto;
+      padding: 9px 11px;
+      border-radius: 8px;
+      background: #1e2b38;
+      color: #fff;
+      font-size: 12px;
+      line-height: 1.62;
+      box-shadow: var(--shadow);
+    }
+
+    .manual-highlight {
+      padding: 1px 3px;
+      border-radius: 3px;
+      background: #dff3ff;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .annotation-list {
+      min-height: 210px;
+      overflow: visible;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+      padding: 10px;
+    }
+
+    .annotation-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .annotation-item {
+      border-left: 3px solid var(--line-strong);
+      padding: 7px 8px;
+      background: var(--surface);
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      line-height: 1.56;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .annotation-item.rejected {
+      filter: grayscale(1);
+      opacity: 0.48;
+      border-left-color: var(--danger);
+    }
+
+    .annotation-item.accepted {
+      border-left-color: var(--success);
+      background: #fbfffd;
+    }
+
+    .annotation-actions {
+      display: inline-flex;
+      gap: 4px;
+    }
+
+    .icon-btn {
+      width: 24px;
+      height: 24px;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      line-height: 1;
+      display: grid;
+      place-items: center;
+    }
+
+    .icon-btn.accept {
+      color: var(--muted);
+    }
+
+    .icon-btn.reject {
+      color: var(--muted);
+    }
+
+    .issue-note {
+      display: block;
+      margin-top: 4px;
+      max-width: 100%;
+      color: var(--muted);
+      white-space: normal;
+      overflow-wrap: anywhere;
+      cursor: help;
+    }
+
+    .annotation-item.accepted .icon-btn.accept {
+      color: var(--success);
+      border-color: #a8d4bd;
+      background: var(--success-soft);
+    }
+
+    .annotation-item.rejected .icon-btn.reject {
+      color: var(--danger);
+      border-color: #f0bdb6;
+      background: var(--danger-soft);
+    }
+
+    .right-content {
+      align-content: start;
+    }
+
+    .stack-section {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .stack-head {
+      flex: 0 0 auto;
+      min-height: 36px;
+      padding: 0 10px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .stack-body {
+      min-height: 0;
+      overflow: auto;
+      padding: 10px;
+      font-size: 13px;
+      line-height: 1.58;
+    }
+
+    .model-risk-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .risk-card {
+      background: var(--danger-soft);
+      border: 1px solid #f0bdb6;
+      border-radius: 6px;
+      padding: 8px;
+    }
+
+    .label-list {
+      min-height: 0;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+      padding-right: 2px;
+    }
+
+    .radio-row {
+      min-height: 34px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      cursor: pointer;
+    }
+
+    .radio-row:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .radio-row input {
+      width: 16px;
+      height: 16px;
+      margin-top: 2px;
+      flex: 0 0 auto;
+    }
+
+    .sample-text {
+      width: 100%;
+      min-height: 190px;
+      resize: vertical;
+      padding: 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      color: var(--text);
+      background: var(--surface);
+    }
+
+    .case-list {
+      min-height: 0;
+      overflow: visible;
+      display: grid;
+      gap: 8px;
+    }
+
+    .case-item,
+    .timeline-item {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+      background: var(--surface-2);
+    }
+
+    .case-item {
+      cursor: pointer;
+    }
+
+    .case-item:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .case-detail {
+      display: grid;
+      gap: 10px;
+    }
+
+    .case-video {
+      aspect-ratio: 16 / 9;
+      border-radius: 6px;
+      border: 1px solid #313d49;
+      background:
+        linear-gradient(135deg, rgba(23, 105, 170, 0.2), rgba(40, 125, 82, 0.16)),
+        #202a33;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .case-video::after {
+      content: "▶";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+
+    .batch-gallery {
+      display: grid;
+      gap: 8px;
+    }
+
+    .batch-card {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface-2);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 9px;
+    }
+
+    .batch-title {
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .batch-line {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .batch-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .batch-card.selected {
+      border-color: #a8d4bd;
+      background: var(--success-soft);
+    }
+
+    .batch-card.selected .batch-select {
+      border-color: var(--success);
+      background: var(--success);
+      color: #fff;
+    }
+
+    .batch-filter-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .batch-filter-row .form-row {
+      gap: 4px;
+    }
+
+    .video-result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .video-result-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface-2);
+    }
+
+    .video-thumb {
+      aspect-ratio: 16 / 9;
+      background:
+        linear-gradient(135deg, rgba(23, 105, 170, 0.18), rgba(40, 125, 82, 0.14)),
+        var(--thumb) center / cover,
+        #202a33;
+      position: relative;
+    }
+
+    .video-thumb::after {
+      content: "▶";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.82);
+      color: #fff;
+      display: grid;
+      place-items: center;
+    }
+
+    .video-result-body {
+      padding: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+      display: grid;
+      gap: 4px;
+    }
+
+    .dropdown {
+      position: relative;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      min-width: 132px;
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+      padding: 5px;
+      z-index: 70;
+    }
+
+    .dropdown.open .dropdown-menu {
+      display: grid;
+      gap: 4px;
+    }
+
+    .case-title {
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .timeline-list {
+      display: grid;
+      gap: 8px;
+      max-height: 150px;
+      overflow: auto;
+      font-size: 12px;
+      line-height: 1.56;
+    }
+
+    .time-label {
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .selection-popover {
+      position: fixed;
+      display: none;
+      width: 164px;
+      z-index: 40;
+      padding: 6px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .selection-popover button {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      padding: 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .selection-popover button:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(10, 18, 28, 0.42);
+    }
+
+    .modal {
+      width: min(620px, 100%);
+      max-height: 86vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .modal-head {
+      min-height: 48px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .modal-title {
+      font-weight: 700;
+    }
+
+    .modal-body {
+      overflow: auto;
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .modal-actions {
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .selected-text {
+      padding: 9px 10px;
+      border: 1px solid #b7d3e9;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: #114a78;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .form-row {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .form-row label {
+      font-weight: 700;
+    }
+
+    input[type="text"],
+    select {
+      width: 100%;
+      min-height: 36px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      padding: 7px 8px;
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .check-row {
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 7px 8px;
+      background: var(--surface-2);
+      font-size: 13px;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 60;
+      display: none;
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: #17324d;
+      color: #fff;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+    }
+
+    .model-drawer {
+      position: fixed;
+      z-index: 80;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: min(420px, 92vw);
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      transform: translateX(-104%);
+      transition: transform 180ms ease;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .model-drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-head {
+      min-height: 54px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--surface-2);
+    }
+
+    .drawer-title {
+      display: grid;
+      gap: 2px;
+    }
+
+    .drawer-title strong {
+      font-size: 14px;
+    }
+
+    .drawer-title span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .drawer-body {
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .chat-msg {
+      max-width: 92%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 13px;
+      line-height: 1.65;
+      background: var(--surface-2);
+    }
+
+    .chat-msg.user {
+      justify-self: end;
+      background: var(--accent-soft);
+      border-color: #b7d3e9;
+    }
+
+    .chat-msg.model {
+      justify-self: start;
+    }
+
+    .chat-msg.status {
+      justify-self: start;
+      color: var(--muted);
+      background: #f2f5f8;
+      border-style: dashed;
+    }
+
+    .trace-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .trace-card h4 {
+      margin: 0;
+      padding: 8px 10px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-2);
+    }
+
+    .streaming::after {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 1em;
+      margin-left: 2px;
+      vertical-align: -2px;
+      background: var(--accent);
+      animation: blink 900ms infinite;
+    }
+
+    @keyframes blink {
+      0%, 45% { opacity: 1; }
+      46%, 100% { opacity: 0; }
+    }
+
+    .trace-card ol {
+      margin: 0;
+      padding: 10px 10px 10px 28px;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .source-links {
+      display: grid;
+      gap: 7px;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .source-links a {
+      color: var(--accent);
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    .source-links a:hover {
+      text-decoration: underline;
+    }
+
+    .drawer-input {
+      border-top: 1px solid var(--line);
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      background: var(--surface);
+    }
+
+    .drawer-input input {
+      min-height: 36px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      padding: 7px 8px;
+    }
+
+    .drawer-toggle {
+      position: fixed;
+      z-index: 70;
+      left: 12px;
+      bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    @media (max-width: 1240px) {
+      .main {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        min-height: 620px;
+      }
+
+      .right-content {
+        grid-template-rows: none;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar-main {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .title-block,
+      .actions {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .kv div {
+        grid-template-columns: 1fr;
+      }
+
+      .check-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-main">
+        <div class="title-block">
+          <div class="product-title">短视频社会时政内容审核工作台</div>
+          <div class="task-id">任务ID：T20260528-0001</div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="submitReview">提交审核结论</button>
+        </div>
+      </div>
+      <div class="status-row">
+        <div class="pill">领域 <strong>社会时政</strong></div>
+        <div class="pill">热点事件 <strong>伊朗局势 / 霍尔木兹海峡</strong></div>
+        <div class="pill">进审原因 <strong>热点事件命中 / 模型召回</strong></div>
+        <div class="pill">模型初判 <strong>资讯使用或解读错误【时政】</strong></div>
+        <div class="pill risk">风险等级 <strong>高</strong></div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">原始内容</div>
+          <button class="btn">查看原链</button>
+        </div>
+        <div class="left-content">
+          <div class="video-frame">
+            <div class="play">▶</div>
+            <div class="video-caption">画面字幕：只是给伊朗上压力测试</div>
+            <div class="video-controls">
+              <span>00:03 / 01:52</span>
+              <div class="progress"><span></span></div>
+              <select class="speed-select" aria-label="倍速">
+                <option>0.75x</option>
+                <option selected>1.0x</option>
+                <option>1.25x</option>
+                <option>1.5x</option>
+                <option>2.0x</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <h3>作者与内容信息</h3>
+            <div class="inline-meta">
+              <p><strong>标题</strong>特朗普宣布展开疏导行动，既避免挨打又转移风险，美伊在演双簧？</p>
+              <p><strong>话题</strong>#全球创作者计划 #零基础看懂全球</p>
+              <p><strong>作者</strong>王强老师 ｜ 认证账号 ｜ 粉丝 299.0 万 ｜ 获赞 3830.0 万</p>
+              <p><strong>发布时间</strong>2026-05-04 16:21</p>
+              <p><strong>互动</strong>点赞 9808 ｜ 评论 232 ｜ 收藏 689 ｜ 分享 81</p>
+            </div>
+          </div>
+
+          <div class="source-grid">
+            <article class="text-card asr-card">
+              <div class="text-card-head">
+                <span>ASR 原始文本</span>
+                <span class="pill">可划词</span>
+              </div>
+              <div class="text-body selectable" data-source="ASR">
+                <p>特朗普宣布对海峡展开疏导行动，直接回应的是美国国内的通胀压力，外加对伊朗谈判的战略筹码。二月份以来，美国国内通胀已经上升了一个百分点，达到了百分之三点四。如果形势进一步恶化，将会导致不可控通胀，这对今年年底的中期选举就是毁灭性打击了。特朗普必须要控制国内通胀压力。</p>
+                <p>而伊朗在海峡现在的这个选择性封锁，事实上将这条国际水道转到了自己的手下，变成了伊朗控制的咽喉要道。这个在美国看来是对美国全球霸权，特别是海权霸权的威胁。如果不能为国际航运提供安全航道，冲击影响的是美元全球体系。</p>
+                <p>美军这次是军舰加飞机模式，三个动作肯定有。第一个就是航道清理，据说会使用人工智能加无人艇扫雷，搞出一条相对安全的通道，让被困船只尽快离开锚泊海区。第二个是对已开辟的航道实施监控，阻止伊朗可能采取的反制措施。第三个就是对伊朗军事力量的压制动作，一旦发现可疑目标，凭借海空优势随时打击。</p>
+                <p>美军用这些方法，实际上是相当于对海峡实施了军管，而不是以往那种的护航行动。护航是要派军舰跟着船队走的，保不起会挨打。所以现在这个模式本质上是一种双风险的转移策略，既避免了直接挨打，又把自身风险转移到了船运公司身上。现在航道开出来了，走不走可是你的事。</p>
+                <p>这件事其实是直接揭了老底了，美军现在力量真的是相当不够用。于是乎我们看到伊朗迅速做出强硬表态，这就是一种明确的威慑信号，它的核心出发点就是要与美国争夺海峡规则制定权，但是不一定会和美国打起来。因为美军用的疏导行动的方法本身也是在躲着伊朗，也就是说眼下这个场景很像是一出双簧表演。</p>
+              </div>
+            </article>
+
+            <article class="text-card">
+              <div class="text-card-head">
+                <span>OCR 原始文本</span>
+                <span class="pill">可划词</span>
+              </div>
+              <div class="text-body selectable" data-source="OCR">
+                <p>特朗普宣布展开疏导行动 美军躲着伊朗像在演双簧 素材来源于网络 00000000000K 王强军事学者</p>
+                <p>特朗普宣布对海峡展开疏导行动｜特朗普宣布展开疏导行动 美军躲着伊朗像在演双簧 素材来源于网络 000000000000K 王强军事学者 点赞支持 关注</p>
+                <p>美国国内的通胀压力｜外加对伊朗谈判的战略筹码｜2月份以来｜已经上升了一个百分点｜达到了3.4%｜如果形势进一步恶化｜将会导致不可控通胀｜就是毁灭性打击了｜特朗普必须要控制</p>
+                <p>而伊朗在海峡现在的“选择性封锁”｜事实上将这条国际水道转到了自己的手下｜变成了伊朗控制的咽喉要道｜是对美国全球霸权特别是海权霸权的威胁｜如果不能为国际航运提供安全航道｜冲击影响的是美元全球体系</p>
+                <p>美军这次是军舰加飞机模式｜三个动作肯定有｜据说会使用人工智能加无人艇扫雷｜搞出一条相对安全的通道｜让被困船只尽快离开锚泊海区</p>
+                <p>第二个是对已开辟的航道实施监控｜阻止伊朗可能采取的反制措施｜第三个就是对伊朗军事力量的压制动作｜一旦发现可疑目标｜凭借海空优势随时打击</p>
+                <p>美军用这些方法｜相当于对海峡实施了军管｜不是以往那种护航行动｜保不起会挨打｜双风险的转移策略｜既避免了直接挨打｜又把自身风险转移到了船运公司身上</p>
+                <p>航道开出来了走不走可是你的事｜直接揭了老底｜美军现在力量真的是相当不够用｜伊朗迅速做出强硬表态｜争夺海峡规则制定权｜不一定会和美国打起来｜很像是一出双簧表演</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">模型整合与问题沉淀</div>
+          <div class="pill">风险片段可悬停</div>
+        </div>
+        <div class="center-content">
+          <article class="summary-card">
+            <div class="text-card-head">
+              <span>高质量文本</span>
+            </div>
+            <div class="summary-body selectable" data-source="高质量文本">
+              <p>视频首先提出，特朗普宣布对海峡展开疏导行动，是为了回应美国国内通胀压力，同时增加对伊朗谈判的战略筹码。视频称，二月份以来美国通胀上升一个百分点至 3.4%，如果形势继续恶化会导致不可控通胀，并对年底中期选举造成毁灭性打击，因此特朗普必须控制国内通胀压力。</p>
+              <p>随后，视频将伊朗在海峡的行为概括为
+                <span class="risk-span" data-tip="风险提示：该说法涉及国际航道控制和伊朗行为性质，需核查是否有权威信源支撑“选择性封锁”的事实基础。">“选择性封锁”</span>
+                ，认为伊朗事实上把国际水道转到自己手下，使其成为伊朗控制的咽喉要道；视频进一步称，这在美国看来威胁美国全球霸权，尤其是海权霸权，如果美国无法为国际航运提供安全航道，冲击的会是美元全球体系。
+              </p>
+              <p>在论证美军行动方式时，视频称美军采用“军舰加飞机”模式，包含三个动作：第一是航道清理，可能使用人工智能和无人艇扫雷，开辟相对安全通道，让被困船只离开锚泊海区；第二是对已开辟航道实施监控，阻止伊朗可能采取的反制措施；第三是压制伊朗军事力量，一旦发现可疑目标就凭借海空优势随时打击。</p>
+              <p>视频据此判断，美军这些方法实际上
+                <span class="risk-span" data-tip="风险提示：美国并非要对该区域实施军管，该表述将航道疏导/保护行动扩大解释为区域军管。">“相当于对海峡实施军管”</span>
+                ，而不是传统护航。视频解释称，传统护航需要军舰跟随船队，可能挨打；现在的模式本质是“双风险转移”，既避免美军直接挨打，又把自身风险转移给船运公司，即航道已经开出，船只是否通行由船运公司自己决定。
+              </p>
+              <p>视频进一步由此推断，美军当前力量
+                <span class="risk-span" data-tip="风险提示：无法由这次疏导行动直接推出美国军力相当不够用，属于从局部行动方式外推整体军力状态。">“相当不够用”</span>
+                。最后，视频称伊朗迅速做出强硬表态，是要与美国争夺海峡规则制定权，但双方不一定会开战，因为美军的疏导行动本身也在躲着伊朗，当前场景很像
+                <span class="risk-span" data-tip="风险提示：“演双簧”属于推断性、动机判断性表达，应检查是否存在证据链，避免把观点包装成事实。">“在演双簧”</span>
+                。
+              </p>
+              <p>综合来看，该视频的观点链条是：美国通胀和谈判筹码推动特朗普采取疏导行动；伊朗对海峡的控制被描述为威胁美国海权和美元体系；美军通过清理、监控、压制三类动作开辟航道；视频再将该行动解释为军管、风险转移和军力不足，并以伊朗强硬表态推导出美伊可能“演双簧”。这些判断中，最需要审核的是“实施军管”“转移风险给船运公司/商船”“美军力量不够用”等推断是否有充分事实依据。</p>
+            </div>
+          </article>
+
+          <div class="annotation-list">
+            <div class="annotation-title">已标注问题点</div>
+            <div id="annotationItems">
+              <div class="annotation-item pending" data-text="相当于对海峡实施军管" data-type="资讯使用或解读错误【时政】" data-reason="美国并非要对该区域实施军管，该内容将航道疏导或保护行动扩大解释为区域军管。">
+                <div>
+                  <strong>“相当于对海峡实施军管”</strong><br />
+                  类型：资讯使用或解读错误【时政】 ｜ 状态：待确认<br />
+                  <span class="issue-note" title="美国并非要对该区域实施军管，该内容将航道疏导或保护行动扩大解释为区域军管。">问题内容：美国并非要对该区域实施军管，该内容将航道疏导或保护行动扩大解释为区域军管。</span>
+                </div>
+                <div class="annotation-actions">
+                  <button class="icon-btn accept" data-accept title="认可">✓</button>
+                  <button class="icon-btn reject" data-reject title="不认可">×</button>
+                </div>
+              </div>
+              <div class="annotation-item pending" data-text="将商船当做人质" data-type="资讯使用或解读错误【时政】" data-reason="无法推断美国是为了将商船当做人质；白宫发言人指出商船一直被困，美国在国际社会也承受压力。">
+                <div>
+                  <strong>“将商船当做人质”</strong><br />
+                  类型：资讯使用或解读错误【时政】 ｜ 状态：待确认<br />
+                  <span class="issue-note" title="无法推断美国是为了将商船当做人质；白宫发言人指出商船一直被困，美国在国际社会也承受压力。">问题内容：无法推断美国是为了将商船当做人质；白宫发言人指出商船一直被困，美国在国际社会也承受压力。</span>
+                </div>
+                <div class="annotation-actions">
+                  <button class="icon-btn accept" data-accept title="认可">✓</button>
+                  <button class="icon-btn reject" data-reject title="不认可">×</button>
+                </div>
+              </div>
+              <div class="annotation-item pending" data-text="美国军力相当不够用" data-type="资讯使用或解读错误【时政】" data-reason="无法由该事件推出美国军力相当不够用，属于由局部事件外推整体军力状态。">
+                <div>
+                  <strong>“美国军力相当不够用”</strong><br />
+                  类型：资讯使用或解读错误【时政】 ｜ 状态：待确认<br />
+                  <span class="issue-note" title="无法由该事件推出美国军力相当不够用，属于由局部事件外推整体军力状态。">问题内容：无法由该事件推出美国军力相当不够用，属于由局部事件外推整体军力状态。</span>
+                </div>
+                <div class="annotation-actions">
+                  <button class="icon-btn accept" data-accept title="认可">✓</button>
+                  <button class="icon-btn reject" data-reject title="不认可">×</button>
+                </div>
+              </div>
+              <div class="annotation-item pending" data-text="在演双簧" data-type="资讯表述存在瑕疵【时政】" data-reason="“演双簧”属于观点化表达和动机推断，是否构成风险点需由人审确认；若认为只是评论表达，可拒绝该候选问题点。">
+                <div>
+                  <strong>“在演双簧”</strong><br />
+                  类型：资讯表述存在瑕疵【时政】 ｜ 状态：待确认<br />
+                  <span class="issue-note" title="“演双簧”属于观点化表达和动机推断，是否构成风险点需由人审确认；若认为只是评论表达，可拒绝该候选问题点。">问题内容：“演双簧”属于观点化表达和动机推断，是否构成风险点需由人审确认；若认为只是评论表达，可拒绝该候选问题点。</span>
+                </div>
+                <div class="annotation-actions">
+                  <button class="icon-btn accept" data-accept title="认可">✓</button>
+                  <button class="icon-btn reject" data-reject title="不认可">×</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">审核结论与辅助信息</div>
+          <button class="btn" id="openAgentBtn">手动调用</button>
+        </div>
+        <div class="right-content">
+          <section class="stack-section">
+            <div class="stack-head">
+              <span>标签打标</span>
+              <span class="pill">单选</span>
+            </div>
+            <div class="stack-body label-list">
+              <label class="radio-row"><input type="radio" name="label" checked />资讯使用或解读错误【时政】</label>
+              <label class="radio-row"><input type="radio" name="label" />资讯表述存在瑕疵【时政】</label>
+              <label class="radio-row"><input type="radio" name="label" />事件基本要素不完整</label>
+              <label class="radio-row"><input type="radio" name="label" />缺乏核实的网传信息</label>
+              <label class="radio-row"><input type="radio" name="label" />有误导性的夸张表达【时政】</label>
+              <label class="radio-row"><input type="radio" name="label" />公共价值低的资讯内容【时政】</label>
+              <label class="radio-row"><input type="radio" name="label" />热点人物/事件线下打卡</label>
+              <label class="radio-row"><input type="radio" name="label" />营销痕迹过重的新闻报道</label>
+              <label class="radio-row"><input type="radio" name="label" />虚构发声主体</label>
+              <label class="radio-row"><input type="radio" name="label" />翻炒旧闻新发</label>
+              <label class="radio-row"><input type="radio" name="label" />已过期内容</label>
+              <label class="radio-row"><input type="radio" name="label" />伪造媒体或从业人员资质播报新闻、带货</label>
+              <label class="radio-row"><input type="radio" name="label" />无资质报道严肃新闻资讯</label>
+              <label class="radio-row"><input type="radio" name="label" />【时政】翻炒负向社会事件</label>
+            </div>
+          </section>
+
+          <section class="stack-section">
+            <div class="stack-head">
+              <span>COT生成</span>
+              <span class="pill">自动生成 CoT</span>
+            </div>
+            <div class="stack-body">
+              <textarea class="sample-text" id="cotText"></textarea>
+            </div>
+          </section>
+
+          <section class="stack-section">
+            <div class="stack-head">
+              <span>历史案例</span>
+              <span class="pill">可上下滑动</span>
+            </div>
+            <div class="stack-body case-list">
+              <div class="case-item" data-case-title="历史案例 01" data-case-label="资讯使用或解读错误【时政】" data-case-selection="实战冲突前兆" data-case-desc="原视频将例行演训直接解释为实战冲突前兆，缺少权威信源和军事行动性质确认。">
+                <div class="case-title">历史案例 01 ｜ 相似度 91%</div>
+                将“例行演训”表述为“实战冲突前兆”，历史标签为“资讯使用或解读错误【时政】”。
+              </div>
+              <div class="case-item" data-case-title="历史案例 02" data-case-label="资讯使用或解读错误【时政】" data-case-selection="对海峡实施军管" data-case-desc="原视频把临时航道保护措施解释为区域军管，扩大了军事行动性质。">
+                <div class="case-title">历史案例 02 ｜ 相似度 88%</div>
+                将“航道保护措施”表述为“区域军管”，历史标签为“资讯使用或解读错误【时政】”。
+              </div>
+            </div>
+          </section>
+
+          <section class="stack-section" id="batchSection">
+            <div class="stack-head">
+              <span>批量处置</span>
+              <span class="pill">90%+ 站内相似 case</span>
+            </div>
+            <div class="stack-body">
+              <div class="inline-meta" style="margin-bottom:10px;">
+                <p><strong>命中数量</strong>站内 4 类问题召回任务，覆盖相似视频 2,820 条。</p>
+              </div>
+              <div class="batch-gallery" id="batchRecallList">
+                <div class="batch-card" data-batch-title="相当于对海峡实施军管" data-batch-count="1286" data-batch-detail="站内相似视频多集中在把航道疏导、扫雷与护航表述为军管的内容，事件相关性高，ASR 结论段相似度较高。">
+                  <div><div class="batch-title">命中问题点：相当于对海峡实施军管</div><div class="batch-line">模型召回阈值：0.9 ｜ 命中该问题的相似视频数量：1286</div></div>
+                  <div class="batch-actions"><button class="btn batch-view">查看详情</button></div>
+                </div>
+                <div class="batch-card" data-batch-title="将商船当做人质" data-batch-count="742" data-batch-detail="相似内容主要把美国疏导行动解释为向船运公司转移风险或把商船当作筹码，缺少信源支撑。">
+                  <div><div class="batch-title">命中问题点：将商船当做人质</div><div class="batch-line">模型召回阈值：0.9 ｜ 命中该问题的相似视频数量：742</div></div>
+                  <div class="batch-actions"><button class="btn batch-view">查看详情</button></div>
+                </div>
+                <div class="batch-card" data-batch-title="美国军力相当不够用" data-batch-count="793" data-batch-detail="召回内容普遍由单次海上行动外推到美军整体军力不足，ASR 结论表达高度相似，需批量复核。">
+                  <div><div class="batch-title">命中问题点：美国军力相当不够用</div><div class="batch-line">模型召回阈值：0.9 ｜ 命中该问题的相似视频数量：793</div></div>
+                  <div class="batch-actions"><button class="btn batch-view">查看详情</button></div>
+                </div>
+                <div class="batch-card" data-batch-title="在演双簧" data-batch-count="9" data-batch-detail="该表达更多属于评论性修辞，召回数量少，默认仅作为低优先级参考，不直接进入批量问题处置。">
+                  <div><div class="batch-title">命中问题点：在演双簧</div><div class="batch-line">模型召回阈值：0.9 ｜ 命中该问题的相似视频数量：9</div></div>
+                  <div class="batch-actions"><button class="btn batch-view">查看详情</button></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <button class="btn primary drawer-toggle" id="openModelDrawer">基座模型对话</button>
+
+  <aside class="model-drawer" id="modelDrawer" aria-label="基座模型对话">
+    <div class="drawer-head">
+      <div class="drawer-title">
+        <strong>基座模型对话</strong>
+        <span>事实核查 / 审核链路 / 证据提示</span>
+      </div>
+      <button class="btn" id="closeModelDrawer">关闭</button>
+    </div>
+    <div class="drawer-body" id="chatBody">
+      <div class="chat-msg model">
+        我可以基于当前视频的 ASR、OCR、高质量文本和已标注问题点，辅助核查事实、梳理审核链路，并解释为什么某个片段可能构成风险。
+      </div>
+    </div>
+    <div class="drawer-input">
+      <input id="chatInput" type="text" placeholder="输入要核查的问题或片段" />
+      <button class="btn primary" id="sendChat">发送</button>
+    </div>
+  </aside>
+
+  <div class="selection-popover" id="selectionPopover">
+    <button data-action="annotate">标注问题点</button>
+    <button data-action="fact">事实核查</button>
+  </div>
+
+  <div class="risk-tooltip" id="riskTooltip"></div>
+
+  <div class="modal-backdrop" id="annotateModal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div class="modal-title">标注问题点</div>
+        <button class="btn" data-close>关闭</button>
+      </div>
+      <div class="modal-body">
+        <div class="selected-text" id="annotateSelected">选中文本</div>
+        <div class="form-row">
+          <label>问题说明</label>
+          <textarea class="sample-text" id="annotateReason" placeholder="说明为什么这段文本存在问题。"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" data-close>取消</button>
+        <button class="btn" id="saveAndBatch">保存并批量处置</button>
+        <button class="btn primary" id="saveAnnotation">保存标注</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="agentModal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div class="modal-title">调用 Agent / Skill</div>
+        <button class="btn" data-close>关闭</button>
+      </div>
+      <div class="modal-body">
+        <div class="selected-text" id="agentSelected">选中文本</div>
+        <div class="check-grid">
+          <label class="check-row"><input type="checkbox" checked />事实核查 Agent</label>
+          <label class="check-row"><input type="checkbox" />社会时政解读 Agent</label>
+          <label class="check-row"><input type="checkbox" />军事专业研判 Agent</label>
+          <label class="check-row"><input type="checkbox" />国际事件研判 Agent</label>
+          <label class="check-row"><input type="checkbox" />新闻规范检查 Agent</label>
+          <label class="check-row"><input type="checkbox" checked />历史案例检索 Skill</label>
+          <label class="check-row"><input type="checkbox" />权威信源检索 Skill</label>
+          <label class="check-row"><input type="checkbox" />事件要素抽取 Skill</label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" data-close>取消</button>
+        <button class="btn primary" id="runAgent">调用</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="caseModal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div class="modal-title" id="caseModalTitle">历史案例详情</div>
+        <button class="btn" data-close>关闭</button>
+      </div>
+      <div class="modal-body">
+        <div class="case-detail">
+          <div class="case-video"></div>
+          <div class="selected-text" id="caseSelection">划词片段</div>
+          <div class="info-card">
+            <h3>对应标签</h3>
+            <div id="caseLabel">资讯使用或解读错误【时政】</div>
+          </div>
+          <div class="info-card">
+            <h3>历史判定依据</h3>
+            <div id="caseDesc">历史案例说明</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" data-close>关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="batchModal">
+    <div class="modal" role="dialog" aria-modal="true" style="width:min(980px,100%);">
+      <div class="modal-head">
+        <div class="modal-title" id="batchModalTitle">批量处置相似视频</div>
+        <button class="btn" data-close>关闭</button>
+      </div>
+      <div class="modal-body">
+        <div class="batch-filter-row">
+          <div class="form-row"><label>排序方式</label><select id="batchSort"><option selected>相似度降序</option><option>发布时间降序</option></select></div>
+          <div class="form-row"><label>播放量范围</label><select id="batchTop"><option selected>Top100</option><option>Top200</option><option>Top500</option><option>Top1000</option></select></div>
+          <div class="form-row"><label>模型召回阈值</label><input id="batchThreshold" type="text" value="0.9" /></div>
+          <div class="dropdown" id="batchOperationDropdown">
+            <button class="btn primary" id="batchOperationBtn">批量操作</button>
+            <div class="dropdown-menu">
+              <button class="btn" data-batch-op="send">批量送审</button>
+              <button class="btn" data-batch-op="process">批量处理</button>
+            </div>
+          </div>
+        </div>
+        <div class="selected-text" id="batchSummary">命中问题点：- ｜ 总召回视频 case 数量：-</div>
+        <div class="video-result-grid" id="batchVideoGrid">
+          <div class="video-result-card"><div class="video-thumb" style="--thumb:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 320 180%22%3E%3Crect width=%22320%22 height=%22180%22 fill=%22%231b3348%22/%3E%3Ctext x=%2224%22 y=%2288%22 fill=%22white%22 font-size=%2220%22%3E相似视频 A%3C/text%3E%3C/svg%3E')"></div><div class="video-result-body"><strong>霍尔木兹海峡疏导行动解读</strong><span>相似度 96% ｜ 播放 218.6万</span><span>命中：军管判断 / 航道行动</span></div></div>
+          <div class="video-result-card"><div class="video-thumb" style="--thumb:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 320 180%22%3E%3Crect width=%22320%22 height=%22180%22 fill=%22%232a2f3a%22/%3E%3Ctext x=%2224%22 y=%2288%22 fill=%22white%22 font-size=%2220%22%3E相似视频 B%3C/text%3E%3C/svg%3E')"></div><div class="video-result-body"><strong>美军扫雷与商船风险转移</strong><span>相似度 94% ｜ 播放 83.4万</span><span>命中：商船人质化推断</span></div></div>
+          <div class="video-result-card"><div class="video-thumb" style="--thumb:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 320 180%22%3E%3Crect width=%22320%22 height=%22180%22 fill=%22%23283a31%22/%3E%3Ctext x=%2224%22 y=%2288%22 fill=%22white%22 font-size=%2220%22%3E相似视频 C%3C/text%3E%3C/svg%3E')"></div><div class="video-result-body"><strong>海峡封锁与美军应对分析</strong><span>相似度 92% ｜ 播放 6.8万</span><span>命中：ASR 结论段相似</span></div></div>
+          <div class="video-result-card"><div class="video-thumb" style="--thumb:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 320 180%22%3E%3Crect width=%22320%22 height=%22180%22 fill=%22%23332f2b%22/%3E%3Ctext x=%2224%22 y=%2288%22 fill=%22white%22 font-size=%2220%22%3E相似视频 D%3C/text%3E%3C/svg%3E')"></div><div class="video-result-body"><strong>伊朗强硬表态后续解读</strong><span>相似度 91% ｜ 播放 9876</span><span>命中：OCR 标题表述相似</span></div></div>
+        </div>
+      </div>
+      <div class="modal-actions"><button class="btn" data-close>关闭</button></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">已保存</div>
+
+  <script>
+    const popover = document.getElementById("selectionPopover");
+    const annotateModal = document.getElementById("annotateModal");
+    const agentModal = document.getElementById("agentModal");
+    const annotateSelected = document.getElementById("annotateSelected");
+    const agentSelected = document.getElementById("agentSelected");
+    const annotationItems = document.getElementById("annotationItems");
+    const caseModal = document.getElementById("caseModal");
+    const caseModalTitle = document.getElementById("caseModalTitle");
+    const caseSelection = document.getElementById("caseSelection");
+    const caseLabel = document.getElementById("caseLabel");
+    const caseDesc = document.getElementById("caseDesc");
+    const batchModal = document.getElementById("batchModal");
+    const batchModalTitle = document.getElementById("batchModalTitle");
+    const batchScore = document.getElementById("batchScore");
+    const batchDesc = document.getElementById("batchDesc");
+    const riskTooltip = document.getElementById("riskTooltip");
+    const modelDrawer = document.getElementById("modelDrawer");
+    const openModelDrawer = document.getElementById("openModelDrawer");
+    const closeModelDrawer = document.getElementById("closeModelDrawer");
+    const chatBody = document.getElementById("chatBody");
+    const chatInput = document.getElementById("chatInput");
+    const toast = document.getElementById("toast");
+
+    let currentSelection = "";
+    let currentSource = "";
+    let currentRange = null;
+
+    function showToast(text) {
+      toast.textContent = text;
+      toast.style.display = "block";
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => {
+        toast.style.display = "none";
+      }, 1800);
+    }
+
+    function openModal(modal) {
+      modal.style.display = "flex";
+    }
+
+    function closeModals() {
+      document.querySelectorAll(".modal-backdrop").forEach((modal) => {
+        modal.style.display = "none";
+      });
+    }
+
+    document.querySelectorAll("[data-close]").forEach((button) => {
+      button.addEventListener("click", closeModals);
+    });
+
+    document.querySelectorAll(".modal-backdrop").forEach((modal) => {
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) closeModals();
+      });
+    });
+
+    document.addEventListener("mouseup", () => {
+      const selection = window.getSelection();
+      const text = selection.toString().trim();
+      if (!text) {
+        popover.style.display = "none";
+        return;
+      }
+
+      const anchor = selection.anchorNode && selection.anchorNode.parentElement;
+      const textBody = anchor && anchor.closest(".selectable");
+      if (!textBody) {
+        popover.style.display = "none";
+        return;
+      }
+
+      currentSelection = text;
+      currentSource = textBody.dataset.source;
+      currentRange = selection.getRangeAt(0).cloneRange();
+      const rect = selection.getRangeAt(0).getBoundingClientRect();
+      popover.style.display = "block";
+      const popoverRect = popover.getBoundingClientRect();
+      const left = Math.min(Math.max(8, rect.left), window.innerWidth - popoverRect.width - 8);
+      const topAbove = rect.top - popoverRect.height - 8;
+      const top = topAbove >= 8 ? topAbove : rect.bottom + 8;
+      popover.style.left = `${left}px`;
+      popover.style.top = `${Math.min(top, window.innerHeight - popoverRect.height - 8)}px`;
+    });
+
+    popover.addEventListener("click", (event) => {
+      const action = event.target.dataset.action;
+      if (!action) return;
+      popover.style.display = "none";
+
+      if (action === "annotate") {
+        annotateSelected.textContent = `选中文本：${currentSelection}`;
+        openModal(annotateModal);
+      }
+
+      if (action === "fact") {
+        modelDrawer.classList.add("open");
+        runFactCheck(currentSelection);
+        showToast("已在基座模型对话中发起事实核查");
+        return;
+      }
+
+    });
+
+    document.getElementById("saveAnnotation").addEventListener("click", () => {
+      const type = "资讯使用或解读错误【时政】";
+      const reasonInput = document.getElementById("annotateReason");
+      const reason = reasonInput.value.trim() || "该问题点由审核员划词新增，需要作为人审反馈进入样本。";
+      if (currentRange) {
+        const highlight = document.createElement("span");
+        highlight.className = "manual-highlight";
+        try {
+          highlight.appendChild(currentRange.extractContents());
+          currentRange.insertNode(highlight);
+          window.getSelection().removeAllRanges();
+        } catch (error) {
+          showToast("已保存标注，跨段选择暂不高亮");
+        }
+      }
+      const item = document.createElement("div");
+      item.className = "annotation-item accepted";
+      item.dataset.text = currentSelection;
+      item.dataset.type = type;
+      item.dataset.reason = reason;
+      item.innerHTML = `<div><strong>“${currentSelection}”</strong><br />类型：${type} ｜ 状态：待确认<br /><span class="issue-note" title="${reason.replaceAll('"', '&quot;')}">问题内容：${reason}</span></div><div class="annotation-actions"><button class="icon-btn accept" data-accept title="认可">✓</button><button class="icon-btn reject" data-reject title="不认可">×</button></div>`;
+      annotationItems.prepend(item);
+      closeModals();
+      reasonInput.value = "";
+      showToast("问题点已沉淀");
+    });
+
+    annotationItems.addEventListener("click", (event) => {
+      const accept = event.target.closest("[data-accept]");
+      const reject = event.target.closest("[data-reject]");
+      if (!accept && !reject) return;
+
+      const item = event.target.closest(".annotation-item");
+      if (!item) return;
+
+      if (accept) {
+        item.classList.remove("rejected");
+        showToast("已认可该问题点");
+      }
+
+      if (reject) {
+        item.classList.add("rejected");
+        showToast("已标记为不认可");
+      }
+    });
+
+    document.getElementById("runAgent").addEventListener("click", () => {
+      closeModals();
+      showToast("已发起 Agent / Skill 调用");
+    });
+
+    document.getElementById("openAgentBtn").addEventListener("click", () => {
+      currentSelection = "当前整条内容";
+      currentSource = "内容包";
+      agentSelected.textContent = "调用对象：当前整条内容";
+      openModal(agentModal);
+    });
+
+    document.querySelectorAll(".case-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        caseModalTitle.textContent = item.dataset.caseTitle || "历史案例详情";
+        caseSelection.textContent = `划词片段：${item.dataset.caseSelection || ""}`;
+        caseLabel.textContent = item.dataset.caseLabel || "";
+        caseDesc.textContent = item.dataset.caseDesc || "";
+        openModal(caseModal);
+      });
+    });
+
+    function showBatchDetail(card) {
+      batchModalTitle.textContent = "批量处置相似视频";
+      const title = card.dataset.batchTitle || "命中问题点";
+      const count = card.dataset.batchCount || "-";
+      const summary = document.getElementById("batchSummary");
+      if (summary) {
+        summary.textContent = `命中问题点：${title} ｜ 总召回视频 case 数量：${count}`;
+      }
+      openModal(batchModal);
+    }
+
+    function bindBatchCard(card) {
+      const view = card.querySelector(".batch-view");
+      if (view) {
+        view.addEventListener("click", () => showBatchDetail(card));
+      }
+    }
+
+    document.querySelectorAll(".batch-card").forEach(bindBatchCard);
+
+    const batchOperationBtn = document.getElementById("batchOperationBtn");
+    const batchOperationDropdown = document.getElementById("batchOperationDropdown");
+    if (batchOperationBtn && batchOperationDropdown) {
+      batchOperationBtn.addEventListener("click", () => {
+        batchOperationDropdown.classList.toggle("open");
+      });
+      batchOperationDropdown.querySelectorAll("[data-batch-op]").forEach((button) => {
+        button.addEventListener("click", () => {
+          batchOperationDropdown.classList.remove("open");
+          showToast(button.dataset.batchOp === "send" ? "已批量送审召回视频" : "已批量处理召回视频");
+        });
+      });
+    }
+
+    function addBatchRecallFromAnnotation() {
+      const list = document.getElementById("batchRecallList");
+      if (!list || !currentSelection) return;
+      const existing = [...list.querySelectorAll(".batch-card")].some((card) => card.dataset.batchTitle === currentSelection);
+      if (existing) return;
+      const count = currentSelection.length > 8 ? 37 : 6;
+      const card = document.createElement("div");
+      card.className = "batch-card";
+      card.dataset.batchTitle = currentSelection;
+      card.dataset.batchCount = String(count);
+      card.dataset.batchDetail = `由人工划词问题点“${currentSelection}”触发召回，系统基于事件相关性、ASR 语义相似度和 OCR 文本相似度检索站内相似视频。`;
+      card.innerHTML = `<div><div class="batch-title">命中问题点：${currentSelection}</div><div class="batch-line">模型召回阈值：0.9 ｜ 命中该问题的相似视频数量：${count}</div></div><div class="batch-actions"><button class="btn batch-view">查看详情</button></div>`;
+      bindBatchCard(card);
+      list.prepend(card);
+    }
+
+    const saveAndBatch = document.getElementById("saveAndBatch");
+    if (saveAndBatch) {
+      saveAndBatch.addEventListener("click", () => {
+        document.getElementById("saveAnnotation").click();
+        window.setTimeout(() => {
+          addBatchRecallFromAnnotation();
+          document.getElementById("batchSection")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          showToast("已保存问题点并召回相似视频");
+        }, 0);
+      });
+    }
+
+    document.querySelectorAll(".risk-span").forEach((item) => {
+      item.addEventListener("mouseenter", () => {
+        const rect = item.getBoundingClientRect();
+        riskTooltip.textContent = item.dataset.tip || "";
+        riskTooltip.style.display = "block";
+        const tooltipRect = riskTooltip.getBoundingClientRect();
+        let left = rect.left;
+        let top = rect.bottom + 8;
+        if (left + tooltipRect.width > window.innerWidth - 12) {
+          left = window.innerWidth - tooltipRect.width - 12;
+        }
+        if (top + tooltipRect.height > window.innerHeight - 12) {
+          top = Math.max(12, rect.top - tooltipRect.height - 8);
+        }
+        riskTooltip.style.left = `${Math.max(12, left)}px`;
+        riskTooltip.style.top = `${Math.max(12, top)}px`;
+      });
+
+      item.addEventListener("mouseleave", () => {
+        riskTooltip.style.display = "none";
+      });
+    });
+
+    function addChatMessage(text, role = "model") {
+      const message = document.createElement("div");
+      message.className = `chat-msg ${role}`;
+      message.textContent = text;
+      chatBody.appendChild(message);
+      chatBody.scrollTop = chatBody.scrollHeight;
+      return message;
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    async function streamMessage(text) {
+      const message = addChatMessage("", "model streaming");
+      for (let index = 0; index < text.length; index += 1) {
+        message.textContent += text[index];
+        chatBody.scrollTop = chatBody.scrollHeight;
+        if (index % 4 === 0) {
+          await sleep(18);
+        }
+      }
+      message.classList.remove("streaming");
+      return message;
+    }
+
+    function addTrace(title, steps) {
+      const card = document.createElement("div");
+      card.className = "trace-card";
+      card.innerHTML = `<h4>${title}</h4><ol>${steps.map((step) => `<li>${step}</li>`).join("")}</ol>`;
+      chatBody.appendChild(card);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    function addSourceLinks(title, links) {
+      const card = document.createElement("div");
+      card.className = "trace-card";
+      card.innerHTML = `<h4>${title}</h4><div class="source-links">${links.map((link) => `<a href="${link.url}" target="_blank" rel="noopener noreferrer">${link.label}</a><div>${link.note}</div>`).join("")}</div>`;
+      chatBody.appendChild(card);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    async function runFactCheck(text) {
+      const target = text && text.trim() ? text.trim() : "当前选中文本";
+      addChatMessage(`自动执行事实核查任务：${target}`, "user");
+      const thinking = addChatMessage("思考中：正在识别可核查断言...", "status");
+      await sleep(650);
+      thinking.textContent = "搜索中：正在检索公开信源与媒体报道...";
+      await sleep(850);
+      thinking.textContent = "整理中：正在对照信源、提取论据并生成核查结论...";
+      await sleep(700);
+      thinking.remove();
+      if (target.includes("人工智能") || target.includes("无人艇") || target.includes("扫雷")) {
+        await streamMessage("核查结论：据公开媒体报道，美军确实在借助人工智能、机器学习和无人平台相关技术，提升或开展霍尔木兹海峡水雷探测/扫雷能力。因此，“使用人工智能和无人艇扫雷”这一事实表述可判定为查证无误。");
+        await sleep(300);
+        addTrace("核查过程", [
+          `待核查片段：${target}`,
+          "央视网《正午国防军事》页面标题和简介均显示：媒体称美军使用 AI 技术在霍尔木兹海峡扫雷。",
+          "证券时报转载新华社消息称，美国海军与 AI 企业签署合同，采购机器学习相关服务，用于改进水雷探测能力，应用场景包括霍尔木兹海峡。",
+          "同页推荐摘要还提到，美军通过人工智能技术训练水下无人机识别新型水雷，相关技术可缩短水下无人机训练时间。",
+          "综合判断：视频中“人工智能加无人艇扫雷”的表述与公开报道方向一致，事实核查无误。"
+        ]);
+        await sleep(250);
+        addSourceLinks("查证信源", [
+          {
+            label: "央视网：[正午国防军事]媒体称美军使用AI技术在霍尔木兹海峡扫雷",
+            url: "https://tv.cctv.com/2026/05/02/VIDEW8h57rXOlSSG5iqeIJoy260502.shtml",
+            note: "央视网页面显示来源为央视网，更新时间为 2026-05-02 12:45，视频简介为“媒体称美军使用AI技术在霍尔木兹海峡扫雷”。"
+          },
+          {
+            label: "证券时报：美军签近亿美元合同 借AI探扫霍尔木兹海峡水雷",
+            url: "https://www.stcn.com/article/detail/3893770.html",
+            note: "证券时报援引新华社消息称，美国海军与 AI 企业签署合同，拟借 AI 技术改进水雷探测能力，应用场景包括霍尔木兹海峡。"
+          }
+        ]);
+        return;
+      }
+      addTrace("核查过程", [
+        `待核查片段：${target}`,
+        "抽取断言：该片段是否在描述官方行动、军事控制状态、商船处境或美军能力判断。",
+        "查证路径：优先查官方发言、国防部门信息、主流通讯社报道，再对照视频中的推断是否超出证据。",
+        "审核输出：如果证据只能支持“航道疏导/保护航运”，不能直接支持“军管/人质/军力不足”等强判断，则标记为推断过度。"
+      ]);
+      addSourceLinks("可跳转信源", [
+        {
+          label: "White House Briefing Room",
+          url: "https://www.whitehouse.gov/briefing-room/",
+          note: "用于查找白宫发言、记者会记录和官方立场。"
+        },
+        {
+          label: "U.S. Department of Defense Releases",
+          url: "https://www.defense.gov/News/Releases/",
+          note: "用于核查美军行动性质、官方措辞和军事行动发布。"
+        },
+        {
+          label: "Reuters Middle East",
+          url: "https://www.reuters.com/world/middle-east/",
+          note: "用于对照国际主流媒体对海峡、商船和美伊局势的报道。"
+        }
+      ]);
+      addChatMessage("初步结论：该片段可以作为候选问题点进入人审确认。若审核员认可，系统会把该核查结论和问题说明写入右侧 COT。");
+    }
+
+    window.runFactCheck = runFactCheck;
+
+    function runModelReply(query) {
+      const normalized = query.trim();
+      if (!normalized) return;
+      addChatMessage(normalized, "user");
+      if (normalized.includes("军管") || normalized.includes("疏导")) {
+        addChatMessage("核查结论：当前高质量文本中，“相当于对海峡实施军管”属于需要谨慎处理的强判断。仅从疏导航道、清理航道或保护航运，不能直接推出美国要对该区域实施军管。");
+        addTrace("证据与判断链路", [
+          "原文断言：美军用这些方法，相当于对海峡实施了军管。",
+          "需核查事实：是否存在美国官方宣布军管、接管规则制定权或区域管制的权威信息。",
+          "当前审核倾向：行动方式可以被描述为航道疏导或航运保护，但直接称为军管存在外推。",
+          "建议问题点：资讯使用或解读错误【时政】。"
+        ]);
+        return;
+      }
+      if (normalized.includes("商船") || normalized.includes("人质")) {
+        addChatMessage("核查结论：无法仅凭视频中的风险转移表述，推断美国是为了将商船当做人质。该判断需要额外证据，否则属于动机外推。");
+        addTrace("证据与判断链路", [
+          "原文论证：航道开出后，船只是否通行由船运公司决定。",
+          "人审参考：白宫发言人指出商船一直被困，美国也承受国际压力。",
+          "风险点：将美国行动解释为主动把商船作为人质，缺少证据链。",
+          "建议：认可该问题点后写入右侧 COT。"
+        ]);
+        return;
+      }
+      if (normalized.includes("军力") || normalized.includes("不够用")) {
+        addChatMessage("核查结论：无法由一次疏导行动直接推出美国整体军力相当不够用。该表述属于从局部行动方式外推整体军力状态。");
+        return;
+      }
+      addChatMessage("我会优先围绕事实断言、证据来源、推断是否过度、标签归因四个维度进行核查。你可以输入具体片段，例如“实施军管”“商船当做人质”“军力不够用”。");
+    }
+
+    openModelDrawer.addEventListener("click", () => {
+      modelDrawer.classList.add("open");
+    });
+
+    closeModelDrawer.addEventListener("click", () => {
+      modelDrawer.classList.remove("open");
+    });
+
+    document.getElementById("sendChat").addEventListener("click", () => {
+      runModelReply(chatInput.value);
+      chatInput.value = "";
+    });
+
+    chatInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        runModelReply(chatInput.value);
+        chatInput.value = "";
+      }
+    });
+
+    document.getElementById("submitReview").addEventListener("click", () => {
+      showToast("审核结论已提交，正在进入下一条任务");
+      window.setTimeout(() => {
+        document.querySelector(".task-id").textContent = "任务ID：T20260528-0002";
+        document.querySelector(".video-caption").textContent = "下一条任务已加载：待审核热点内容";
+        document.querySelector(".product-title").textContent = "短视频社会时政内容审核工作台";
+        showToast("已进入下一条任务");
+      }, 900);
+    });
+  </script>
+  <script>
+    (() => {
+      const items = document.getElementById("annotationItems");
+      const cot = document.getElementById("cotText");
+      const save = document.getElementById("saveAnnotation");
+
+      function bodyOf(item) {
+        return item.querySelector("[data-annotation-body]") || item.querySelector("div");
+      }
+
+      function setStatus(item, status) {
+        const body = bodyOf(item);
+        if (!body) return;
+        body.innerHTML = body.innerHTML.replace(/状态：[^<]+/, `状态：${status}`);
+      }
+
+      function parse(item) {
+        const body = bodyOf(item);
+        const bodyText = body ? body.innerText : "";
+        return {
+          text: item.dataset.text || (bodyText.match(/“(.+?)”/) || [])[1] || "",
+          type: item.dataset.type || (bodyText.match(/类型：(.+?) ｜/) || [])[1] || "",
+          reason: item.dataset.reason || "该问题点由审核员划词新增，需要作为人审反馈进入样本。",
+          state: item.classList.contains("rejected")
+            ? "rejected"
+            : item.classList.contains("accepted")
+              ? "accepted"
+              : "pending"
+        };
+      }
+
+      function updateCot() {
+        const annotations = [...items.querySelectorAll(".annotation-item")].map(parse);
+        const accepted = annotations.filter((item) => item.state === "accepted");
+        const rejected = annotations.filter((item) => item.state === "rejected");
+        const pending = annotations.filter((item) => item.state === "pending");
+      const baseCot = "内容理解：视频围绕特朗普宣布对海峡展开“疏导行动”展开分析，先将行动原因归纳为美国国内通胀压力和对伊朗谈判筹码，再将美军行动拆解为航道清理、航道监控和压制伊朗军事力量三步。随后，视频进一步推导出“对海峡实施军管”“把风险转移给船运公司/商船”“美军力量不够用”等结论。";
+      if (!accepted.length) {
+        cot.value = baseCot;
+        return;
+      }
+
+      const acceptedReasons = accepted.map((item, index) => `${index + 1}. 「${item.text}」：${item.reason}`).join("\n");
+      cot.value = `${baseCot}\n\n已认可问题点：\n${acceptedReasons}\n\n审核判断：以上已认可问题点存在事实依据不足或推断过度的问题。视频可以表达对美国行动动机的分析，但不能把缺少支撑的推断包装成确定结论。因此，本条内容更适合标注为“资讯使用或解读错误【时政】”。`;
+      }
+
+      items.addEventListener("click", (event) => {
+        const item = event.target.closest(".annotation-item");
+        if (!item) return;
+        if (event.target.closest("[data-accept]")) {
+          item.classList.add("accepted");
+          item.classList.remove("rejected", "pending");
+          setStatus(item, "已认可");
+          updateCot();
+        }
+        if (event.target.closest("[data-reject]")) {
+          item.classList.add("rejected");
+          item.classList.remove("accepted", "pending");
+          setStatus(item, "不认可");
+          updateCot();
+        }
+      });
+
+      save.addEventListener("click", () => {
+        window.setTimeout(() => {
+          const item = items.querySelector(".annotation-item");
+          if (!item) return;
+          item.classList.add("accepted");
+          item.classList.remove("pending", "rejected");
+          item.dataset.text = item.dataset.text || (bodyOf(item)?.innerText.match(/“(.+?)”/) || [])[1] || "";
+          setStatus(item, "已认可");
+          updateCot();
+        }, 0);
+      });
+
+      updateCot();
+    })();
+  </script>
+</body>
+</html>
